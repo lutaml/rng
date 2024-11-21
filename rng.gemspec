@@ -23,13 +23,15 @@ Gem::Specification.new do |spec|
 
   # Specify which files should be added to the gem when it is released.
   spec.files = all_files_in_git
-    .reject { |f| f.match(%r{\A(?:test|spec|features|bin|\.)/}) }
+    .reject { |f| f.match(%r{\A(?:test|features|bin|\.)/}) }
 
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "lutaml-model", "~> 0.3.0"
+  spec.add_dependency "lutaml-model"
+  spec.add_dependency "parslet"
+  spec.add_dependency "nokogiri"
 
   # spec.add_dependency "thor"
   spec.metadata["rubygems_mfa_required"] = "true"
