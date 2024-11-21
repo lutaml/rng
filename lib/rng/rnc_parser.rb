@@ -7,100 +7,101 @@ module Rng
     rule(:space?) { space.maybe }
     rule(:newline) { (str("\r").maybe >> str("\n")).repeat(1) }
     rule(:newline?) { newline.maybe }
-    rule(:comma) { str(",") >> space? >> newline? }
-    rule(:comma?) { comma.maybe }
+    rule(:whitespace) { (space | newline).repeat }
+    rule(:comma) { str(",") }
+    rule(:comma?) { (whitespace >> comma >> whitespace).maybe }
 
-    rule(:identifier) { match("[a-zA-Z0-9_]").repeat(1) }
+    rule(:identifier) { match("[a-zA-Z0-9_]").repeat(1).as(:identifier) }
 
     rule(:element_def) {
       str("element") >> space >>
-      identifier.as(:name) >> space? >>
-      str("{") >> space? >> newline? >>
-      content.as(:content).maybe >> space? >> newline? >>
+      identifier >>
+      whitespace >>
+      str("{") >>
+      whitespace >>
+      content.maybe.as(:content) >>
+      whitespace >>
       str("}") >>
       (str("*") | str("+") | str("?")).maybe.as(:occurrence)
     }
 
     rule(:attribute_def) {
       str("attribute") >> space >>
-      identifier.as(:name) >> space? >>
-      str("{") >> space? >>
-      str("text") >>
-      space? >> str("}")
+      identifier >>
+      whitespace >>
+      str("{") >>
+      whitespace >>
+      (str("text")).as(:type) >>
+      whitespace >>
+      str("}")
     }
 
-    rule(:text_def) { str("text") }
+    rule(:text_def) { str("text").as(:text) }
 
     rule(:content_item) {
-      (element_def | attribute_def | text_def | optional) >> comma?
+      (element_def | attribute_def | text_def).as(:item) >> comma?
     }
 
     rule(:content) { content_item.repeat(1) }
 
-    rule(:optional) {
-      (element_def | attribute_def).as(:optional) >> str("?")
-    }
-
-    rule(:grammar) { element_def.as(:element) }
+    rule(:grammar) { whitespace >> element_def.as(:element) >> whitespace }
 
     root(:grammar)
 
     def parse(input)
-      tree = super(input)
+      tree = super(input.strip)
       build_schema(tree)
     end
 
     private
 
     def build_schema(tree)
+      element = tree[:element]
       Rng::Schema.new(
         start: Rng::Start.new(
-          elements: [build_element(tree[:element])],
+          elements: [build_element(element)],
         ),
       )
     end
 
     def build_element(element)
-      Rng::Element.new(
-        name: element[:name].to_s,
-        elements: build_content(element[:content]),
-        zero_or_more: element[:occurrence] == "*" ? [Rng::Element.new] : nil,
-        one_or_more: element[:occurrence] == "+" ? [Rng::Element.new] : nil,
-        optional: element[:occurrence] == "?" ? [Rng::Element.new] : nil,
+      name = element[:identifier].to_s
+      content = element[:content]
+      occurrence = element[:occurrence]
+
+      el = Rng::Element.new(
+        name: name,
+        attributes: [],
+        elements: [],
+        text: false,
       )
-    end
 
-    def build_content(content)
-      return [] if content.nil?
-
-      content.map do |item|
-        case item
-        when Hash
-          if item[:optional]
-            build_optional(item[:optional])
-          elsif item.key?(:name)
-            if item[:content]&.include?("text")
-              Rng::Element.new(name: item[:name].to_s, text: true)
-            else
-              build_element(item)
-            end
-          end
-        when String
-          if item == "text"
-            Rng::Element.new(text: true)
+      if content
+        content.each do |item|
+          case
+          when item[:item][:identifier] && item[:item][:type]
+            el.attributes << Rng::Attribute.new(
+              name: item[:item][:identifier].to_s,
+              type: ["string"],
+            )
+          when item[:item][:identifier]
+            el.elements << build_element(item[:item])
+          when item[:item][:text]
+            el.text = true
           end
         end
-      end.compact
-    end
+      end
 
-    def build_optional(item)
-      element = if item.key?(:content)
-          build_element(item)
-        else
-          Rng::Element.new(name: item[:name].to_s, text: true)
-        end
-      element.optional = [element.dup]
-      element
+      case occurrence
+      when "*"
+        el.zero_or_more = [el.dup]
+      when "+"
+        el.one_or_more = [el.dup]
+      when "?"
+        el.optional = [el.dup]
+      end
+
+      el
     end
   end
 end
