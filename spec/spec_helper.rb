@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rng"
+require "xml/c14n"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
@@ -12,4 +13,11 @@ RSpec.configure do |config|
   config.expect_with :rspec do |c|
     c.syntax = :expect
   end
+
+  # Add helper method for XML comparison
+  config.include(Module.new do
+    def normalize_xml(xml)
+      Xml::C14n.format(xml)
+    end
+  end)
 end

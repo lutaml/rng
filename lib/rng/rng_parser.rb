@@ -47,35 +47,57 @@ module Rng
     end
 
     def parse_element(node)
-      Element.new(
+      return nil unless node["name"]
+
+      element = Element.new(
         name: node["name"],
-        attributes: node.xpath(".//attribute").map { |attr| parse_attribute(attr) },
-        elements: node.xpath("./element").map { |el| parse_element(el) },
-        text: !node.xpath(".//text").empty?,
-        zero_or_more: parse_zero_or_more(node),
-        one_or_more: parse_one_or_more(node),
-        optional: parse_optional(node),
-        choice: parse_choice(node),
+        attributes: [],
+        elements: [],
+        text: false,
       )
+
+      node.children.each do |child|
+        parse_child(child, element)
+      end
+
+      element
+    end
+
+    def parse_child(node, element)
+      case node.name
+      when "attribute"
+        element.attributes << parse_attribute(node)
+      when "element"
+        element.elements << parse_element(node)
+      when "text"
+        element.text = true
+      when "zeroOrMore"
+        parse_zero_or_more(node).each { |el| element.zero_or_more << el }
+      when "oneOrMore"
+        parse_one_or_more(node).each { |el| element.one_or_more << el }
+      when "optional"
+        parse_optional(node).each { |el| element.optional << el }
+      end
     end
 
     def parse_attribute(node)
+      data_node = node.at_xpath(".//data")
       Attribute.new(
         name: node["name"],
-        type: node.xpath(".//data").map { |data| data["type"] },
+        type: data_node ? [data_node["type"]] : ["string"],
       )
     end
 
     def parse_zero_or_more(node)
-      node.xpath(".//zeroOrMore/element").map { |el| parse_element(el) }
+      node.xpath("./element").map { |el| parse_element(el) }
     end
 
     def parse_one_or_more(node)
-      node.xpath(".//oneOrMore/element").map { |el| parse_element(el) }
+      node.xpath("./element").map { |el| parse_element(el) }
     end
 
     def parse_optional(node)
-      node.xpath(".//optional/element").map { |el| parse_element(el) }
+      node.xpath("./element").map { |el| parse_element(el) }
     end
 
     def parse_choice(node)

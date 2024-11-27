@@ -8,6 +8,7 @@ RSpec.describe Rng::Schema do
   describe "RNG parsing and building" do
     let(:rng_input) do
       <<~RNG
+        <?xml version="1.0" encoding="UTF-8"?>
         <element name="addressBook" xmlns="http://relaxng.org/ns/structure/1.0">
           <zeroOrMore>
             <element name="card">
@@ -31,7 +32,7 @@ RSpec.describe Rng::Schema do
     it "correctly parses and rebuilds RNG" do
       parsed = rng_parser.parse(rng_input)
       rebuilt = builder.build(parsed, format: :rng)
-      expect(rebuilt.gsub(/\s+/, "")).to eq(rng_input.gsub(/\s+/, ""))
+      expect(normalize_xml(rebuilt)).to eq(normalize_xml(rng_input))
     end
   end
 
@@ -58,6 +59,7 @@ RSpec.describe Rng::Schema do
   describe "RNG to RNC conversion" do
     let(:rng_input) do
       <<~RNG
+        <?xml version="1.0" encoding="UTF-8"?>
         <element name="addressBook" xmlns="http://relaxng.org/ns/structure/1.0">
           <zeroOrMore>
             <element name="card">

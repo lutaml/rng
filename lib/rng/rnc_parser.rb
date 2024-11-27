@@ -27,7 +27,7 @@ module Rng
 
     rule(:attribute_def) {
       str("attribute") >> space >>
-      identifier >>
+      identifier.as(:name) >>
       whitespace >>
       str("{") >>
       whitespace >>
@@ -39,10 +39,10 @@ module Rng
     rule(:text_def) { str("text").as(:text) }
 
     rule(:content_item) {
-      (element_def | attribute_def | text_def).as(:item) >> comma?
+      ((element_def | attribute_def | text_def).as(:item) >> comma?).repeat(1).as(:items)
     }
 
-    rule(:content) { content_item.repeat(1) }
+    rule(:content) { content_item }
 
     rule(:grammar) { whitespace >> element_def.as(:element) >> whitespace }
 
@@ -57,8 +57,8 @@ module Rng
 
     def build_schema(tree)
       element = tree[:element]
-      Rng::Schema.new(
-        start: Rng::Start.new(
+      Schema.new(
+        start: Start.new(
           elements: [build_element(element)],
         ),
       )
@@ -66,10 +66,11 @@ module Rng
 
     def build_element(element)
       name = element[:identifier].to_s
-      content = element[:content]
+      content = element[:content]&.[](:items)
       occurrence = element[:occurrence]
 
-      el = Rng::Element.new(
+      # Create base element
+      el = Element.new(
         name: name,
         attributes: [],
         elements: [],
@@ -77,31 +78,59 @@ module Rng
       )
 
       if content
+        current_elements = []
+        current_attributes = []
+
         content.each do |item|
           case
-          when item[:item][:identifier] && item[:item][:type]
-            el.attributes << Rng::Attribute.new(
-              name: item[:item][:identifier].to_s,
+          when item[:item][:name] || (item[:item][:identifier] && item[:item][:type])
+            attr_name = item[:item][:name] || item[:item][:identifier]
+            attr = Attribute.new(
+              name: attr_name.to_s,
               type: ["string"],
             )
+            current_attributes << attr
           when item[:item][:identifier]
-            el.elements << build_element(item[:item])
+            current_elements << build_element(item[:item])
           when item[:item][:text]
             el.text = true
           end
         end
+
+        el.attributes = current_attributes
+        el.elements = current_elements
       end
 
+      # Handle occurrence modifiers
+      result = el
       case occurrence
       when "*"
-        el.zero_or_more = [el.dup]
+        result = Element.new(
+          name: el.name,
+          attributes: el.attributes,
+          elements: el.elements,
+          text: el.text,
+        )
+        result.zero_or_more = [el]
       when "+"
-        el.one_or_more = [el.dup]
+        result = Element.new(
+          name: el.name,
+          attributes: el.attributes,
+          elements: el.elements,
+          text: el.text,
+        )
+        result.one_or_more = [el]
       when "?"
-        el.optional = [el.dup]
+        result = Element.new(
+          name: el.name,
+          attributes: el.attributes,
+          elements: el.elements,
+          text: el.text,
+        )
+        result.optional = [el]
       end
 
-      el
+      result
     end
   end
 end

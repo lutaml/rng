@@ -44,16 +44,45 @@ module Rng
           root.add_child(define_node)
         end
       elsif schema.is_a?(Rng::Element)
-        doc.root = build_rng_element(schema, doc)
+        el = build_rng_element(schema, doc)
+        el["xmlns"] = "http://relaxng.org/ns/structure/1.0"
+        doc.root = el
       end
 
       doc.to_xml
     end
 
     def build_rng_element(element, doc)
-      el = Nokogiri::XML::Node.new("element", doc)
-      el["name"] = element.name
+      if element.zero_or_more&.any?
+        zero_or_more = Nokogiri::XML::Node.new("zeroOrMore", doc)
+        el = Nokogiri::XML::Node.new("element", doc)
+        el["name"] = element.name
+        add_element_content(element, el, doc)
+        zero_or_more.add_child(el)
+        return zero_or_more
+      elsif element.one_or_more&.any?
+        one_or_more = Nokogiri::XML::Node.new("oneOrMore", doc)
+        el = Nokogiri::XML::Node.new("element", doc)
+        el["name"] = element.name
+        add_element_content(element, el, doc)
+        one_or_more.add_child(el)
+        return one_or_more
+      elsif element.optional&.any?
+        optional = Nokogiri::XML::Node.new("optional", doc)
+        el = Nokogiri::XML::Node.new("element", doc)
+        el["name"] = element.name
+        add_element_content(element, el, doc)
+        optional.add_child(el)
+        return optional
+      else
+        el = Nokogiri::XML::Node.new("element", doc)
+        el["name"] = element.name
+        add_element_content(element, el, doc)
+        return el
+      end
+    end
 
+    def add_element_content(element, el, doc)
       element.attributes&.each do |attr|
         attr_node = Nokogiri::XML::Node.new("attribute", doc)
         attr_node["name"] = attr.name
@@ -76,14 +105,6 @@ module Rng
         text = Nokogiri::XML::Node.new("text", doc)
         el.add_child(text)
       end
-
-      if element.zero_or_more&.any?
-        zero_or_more = Nokogiri::XML::Node.new("zeroOrMore", doc)
-        zero_or_more.add_child(build_rng_element(element.zero_or_more.first, doc))
-        el = zero_or_more
-      end
-
-      el
     end
 
     def build_rnc(schema)
@@ -96,6 +117,8 @@ module Rng
     end
 
     def build_rnc_element(element, indent = 0)
+      return "" unless element # Handle nil elements
+
       result = "  " * indent
       result += "element #{element.name} {\n"
 
@@ -105,11 +128,11 @@ module Rng
         result += ",\n" unless element.attributes.last == attr && !element.elements&.any? && !element.text
       end
 
-      if element.elements&.any?
-        element.elements.each do |child|
-          result += build_rnc_element(child, indent + 1)
-          result += ",\n" unless element.elements.last == child && !element.text
-        end
+      element.elements&.each_with_index do |child, index|
+        child_result = build_rnc_element(child, indent + 1)
+        result += child_result
+        result += "," unless index == element.elements.size - 1 && !element.text
+        result += "\n"
       end
 
       if element.text
