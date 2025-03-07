@@ -23,6 +23,8 @@ module Rng
     attribute :notAllowed, NotAllowed, collection: true, initialize_empty: true
 
     xml do
+      root "group", ordered: true
+
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns
       map_attribute "datatypeLibrary", to: :datatypeLibrary

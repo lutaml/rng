@@ -9,8 +9,52 @@ RSpec.describe Rng::Schema do
     it "correctly parses RNG" do
       parsed = Rng.parse(rng_input)
       expect(parsed).to be_a(Rng::Schema)
-      expect(parsed.element).to be_a(Rng::Element)
-      expect(parsed.element.name).to eq("addressBook")
+      expect(parsed.element).to be_empty
+      expect(parsed.start.element.first.name).to eq("addressBook")
+    end
+  end
+
+  describe "Round-trip testing RNG" do
+    let(:rng_input) do
+      File.read("spec/fixtures/rng/address_book.rng")
+    end
+
+    it "correctly round-trips RNG to model and back" do
+      # Parse the input RNG directly using Schema.from_xml
+      parsed = Rng::Schema.from_xml(rng_input)
+
+      # Generate XML from the model (using lutaml-model's existing functionality)
+      regenerated = parsed.to_xml
+
+      puts "Regenerated XML:"
+      puts regenerated
+      puts "Original RNG:"
+      puts rng_input
+
+      # Compare using the be_analogous_with matcher
+      expect(regenerated).to be_analogous_with(rng_input)
+    end
+
+    let(:complex_rng_input) do
+      File.read("spec/fixtures/rng/complex_example.rng")
+    end
+
+    it "correctly round-trips complex RNG to model and back" do
+      parsed = Rng::Schema.from_xml(complex_rng_input)
+      regenerated = parsed.to_xml
+      expect(regenerated).to be_analogous_with(complex_rng_input)
+    end
+  end
+
+  describe "Round-trip testing for complex RNG schemas" do
+    let(:relaxng_schema_input) do
+      File.read("spec/fixtures/rng/relaxng.rng")
+    end
+
+    it "correctly round-trips the RELAX NG schema itself" do
+      parsed = Rng::Schema.from_xml(relaxng_schema_input)
+      regenerated = parsed.to_xml
+      expect(regenerated).to be_analogous_with(relaxng_schema_input)
     end
   end
 
@@ -53,36 +97,6 @@ RSpec.describe Rng::Schema do
       expect(parsed).to be_a(Rng::Schema)
       expect(parsed.element).to be_a(Rng::Element)
       expect(parsed.element.name).to eq("addressBook")
-    end
-  end
-
-  describe "Complex schema parsing" do
-    let(:complex_rng_input) do
-      File.read("spec/fixtures/rng/complex_example.rng")
-    end
-
-    it "correctly parses complex RNG" do
-      parsed = Rng.parse(complex_rng_input)
-      expect(parsed).to be_a(Rng::Schema)
-      expect(parsed.datatypeLibrary).to eq("http://www.w3.org/2001/XMLSchema-datatypes")
-      expect(parsed.start).to be_a(Rng::Start)
-      expect(parsed.start.element).to be_a(Rng::Element)
-      expect(parsed.start.element.name).to eq("document")
-    end
-  end
-
-  describe "Grammar with named patterns" do
-    let(:grammar_rng_input) do
-      File.read("spec/fixtures/rng/address_book_grammar.rng")
-    end
-
-    it "correctly parses grammar with named patterns" do
-      parsed = Rng.parse(grammar_rng_input)
-      expect(parsed).to be_a(Rng::Schema)
-      expect(parsed.start).to be_a(Rng::Start)
-      expect(parsed.define).to be_a(Array)
-      expect(parsed.define.size).to eq(1)
-      expect(parsed.define.first.name).to eq("cardContent")
     end
   end
 

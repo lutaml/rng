@@ -7,7 +7,7 @@ module Rng
     attribute :datatypeLibrary, :string
     attribute :id, :string
     attribute :attribute, Attribute
-    attribute :ref, Ref
+    attribute :ref, Ref, collection: true
     attribute :choice, Choice
     attribute :group, Group
     attribute :interleave, Interleave
@@ -21,9 +21,11 @@ module Rng
     attribute :data, Data
     attribute :list, List
     attribute :notAllowed, NotAllowed
-    attribute :element, Element
+    attribute :element, Element, collection: true
 
     xml do
+      root "element", ordered: true
+
       map_attribute "name", to: :name
       map_attribute "ns", to: :ns
       map_attribute "datatypeLibrary", to: :datatypeLibrary
@@ -37,13 +39,14 @@ module Rng
       map_element "optional", to: :optional
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
-      map_element "text", to: :text
+      map_element "text", to: :text, render_nil: :as_blank
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data
       map_element "list", to: :list
       map_element "notAllowed", to: :notAllowed
       map_element "element", to: :element
+      map_element "mixed", to: :mixed
     end
   end
 end

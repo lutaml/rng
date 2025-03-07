@@ -4,6 +4,7 @@ module Rng
   class Except < Lutaml::Model::Serializable
     attribute :id, :string
     attribute :ns, :string
+    attribute :ns_name, NsName, collection: true
     attribute :datatypeLibrary, :string
     attribute :element, Element, collection: true, initialize_empty: true
     attribute :attribute, Attribute, collection: true, initialize_empty: true
@@ -23,6 +24,8 @@ module Rng
     attribute :notAllowed, NotAllowed, collection: true, initialize_empty: true
 
     xml do
+      root "except", ordered: true
+
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns
       map_attribute "datatypeLibrary", to: :datatypeLibrary

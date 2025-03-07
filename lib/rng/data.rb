@@ -10,6 +10,8 @@ module Rng
     attribute :except, Except
 
     xml do
+      root "data", ordered: true
+
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns
       map_attribute "datatypeLibrary", to: :datatypeLibrary

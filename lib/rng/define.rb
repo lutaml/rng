@@ -8,7 +8,7 @@ module Rng
     attribute :ns, :string
     attribute :datatypeLibrary, :string
     attribute :ref, Ref
-    attribute :element, Element
+    attribute :element, Element, collection: true
     attribute :choice, Choice
     attribute :group, Group
     attribute :interleave, Interleave
@@ -25,6 +25,7 @@ module Rng
     attribute :attribute, Attribute
 
     xml do
+      root "define", ordered: true
       map_attribute "name", to: :name
       map_attribute "combine", to: :combine
       map_attribute "id", to: :id

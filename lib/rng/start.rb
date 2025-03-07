@@ -6,7 +6,7 @@ module Rng
     attribute :ns, :string
     attribute :datatypeLibrary, :string
     attribute :ref, Ref
-    attribute :element, Element
+    attribute :element, Element, collection: true
     attribute :choice, Choice
     attribute :group, Group
     attribute :interleave, Interleave
@@ -22,6 +22,8 @@ module Rng
     attribute :notAllowed, NotAllowed
 
     xml do
+      root "start", ordered: true
+
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns
       map_attribute "datatypeLibrary", to: :datatypeLibrary

@@ -8,10 +8,10 @@ module Rng
     attribute :datatypeLibrary, :string
     attribute :start, Start
     attribute :define, Define, collection: true, initialize_empty: true
-    attribute :element, Element
+    attribute :element, Element, collection: true
 
     xml do
-      root "grammar"
+      root "grammar", ordered: true
       namespace "http://relaxng.org/ns/structure/1.0"
 
       map_element "start", to: :start

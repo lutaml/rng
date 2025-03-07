@@ -6,11 +6,12 @@ source "https://rubygems.org"
 gemspec
 
 gem "equivalent-xml"
+gem "lutaml-model", github: "lutaml/lutaml-model", branch: "main"
 gem "nokogiri"
-gem "xml-c14n"
 gem "rake", "~> 13.0"
 gem "rspec", "~> 3.0"
 gem "rubocop", "~> 1.21"
 gem "rubocop-performance", require: false
 gem "rubocop-rake", require: false
 gem "rubocop-rspec", require: false
+gem "xml-c14n"

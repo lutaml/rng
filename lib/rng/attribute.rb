@@ -22,6 +22,8 @@ module Rng
     attribute :notAllowed, NotAllowed
 
     xml do
+      root "attribute", ordered: true
+
       map_attribute "name", to: :name
       map_attribute "ns", to: :ns
       map_attribute "datatypeLibrary", to: :datatypeLibrary
