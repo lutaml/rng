@@ -1,0 +1,63 @@
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element name="document">
+      <attribute name="version">
+        <data type="decimal"/>
+      </attribute>
+      <element name="header">
+        <element name="title">
+          <text/>
+        </element>
+        <element name="author">
+          <choice>
+            <element name="name">
+              <text/>
+            </element>
+            <group>
+              <element name="firstName">
+                <text/>
+              </element>
+              <element name="lastName">
+                <text/>
+              </element>
+            </group>
+          </choice>
+        </element>
+        <element name="date">
+          <data type="date"/>
+        </element>
+      </element>
+      <element name="body">
+        <oneOrMore>
+          <element name="section">
+            <attribute name="id">
+              <data type="ID"/>
+            </attribute>
+            <element name="title">
+              <text/>
+            </element>
+            <oneOrMore>
+              <element name="paragraph">
+                <mixed>
+                  <zeroOrMore>
+                    <choice>
+                      <element name="emphasis">
+                        <text/>
+                      </element>
+                      <element name="link">
+                        <attribute name="href">
+                          <data type="anyURI"/>
+                        </attribute>
+                        <text/>
+                      </element>
+                    </choice>
+                  </zeroOrMore>
+                </mixed>
+              </element>
+            </oneOrMore>
+          </element>
+        </oneOrMore>
+      </element>
+    </element>
+  </start>
+</grammar>

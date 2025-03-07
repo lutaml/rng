@@ -1,0 +1,402 @@
+= RNG: RELAX NG Schema Processing for Ruby
+:toc: macro
+:toclevels: 3
+:toc-title: Contents
+:source-highlighter: highlight.js
+
+image:https://github.com/lutaml/rng/workflows/rake/badge.svg["Build Status", link="https://github.com/lutaml/rng/actions?workflow=rake"]
+
+toc::[]
+
+== Introduction and purpose
+
+RNG provides Ruby tools for working with RELAX NG schemas, supporting both the XML syntax (RNG) and the compact syntax (RNC). It allows parsing, manipulation, and generation of RELAX NG schemas through an intuitive Ruby API.
+
+Key features:
+
+* Parse RELAX NG XML (.rng) and Compact (.rnc) syntax
+* Programmatically build RELAX NG schemas
+* Convert between XML and compact notations
+* Object model representing RELAX NG concepts
+* Integration with the LutaML ecosystem
+
+== Getting started
+
+Install the gem:
+
+[source,ruby]
+----
+# In your Gemfile
+gem 'rng'
+----
+
+=== Parsing RNG schemas
+
+[source,ruby]
+----
+require 'rng'
+
+# Parse from XML syntax
+schema = Rng.parse(File.read('example.rng'))
+
+# Access schema components
+if schema.element
+  # Simple element pattern
+  puts "Root element: #{schema.element.name}"
+else
+  # Grammar with named patterns
+  start_element = schema.start.element
+  puts "Root element: #{start_element.name}"
+end
+----
+
+=== Parsing RNC schemas
+
+[source,ruby]
+----
+require 'rng'
+
+# Parse from compact syntax
+schema = Rng.parse_rnc(File.read('example.rnc'))
+
+# Access schema components
+if schema.element
+  # Simple element pattern
+  puts "Root element: #{schema.element.name}"
+else
+  # Grammar with named patterns
+  start_element = schema.start.element
+  puts "Root element: #{start_element.name}"
+end
+----
+
+=== Converting between formats
+
+[source,ruby]
+----
+require 'rng'
+
+# Parse RNG and convert to RNC
+schema = Rng.parse(File.read('example.rng'))
+rnc = Rng.to_rnc(schema)
+File.write('example.rnc', rnc)
+
+# Parse RNC and get RNG XML
+schema = Rng.parse_rnc(File.read('example.rnc'))
+rng_xml = Rng::RncParser.parse(File.read('example.rnc'))
+File.write('example.rng', rng_xml)
+----
+
+=== Building schemas programmatically
+
+[source,ruby]
+----
+require 'rng'
+
+# Create a schema with an address element
+schema = Rng::Schema.new
+schema.element = Rng::Element.new(
+  name: "address"
+)
+
+# Add attributes
+schema.element.attribute = Rng::Attribute.new(
+  name: "id"
+)
+schema.element.attribute.data = Rng::Data.new(
+  type: "ID"
+)
+
+# Add child elements
+name_element = Rng::Element.new(name: "name")
+name_element.text = Rng::Text.new
+
+street_element = Rng::Element.new(name: "street")
+street_element.text = Rng::Text.new
+
+city_element = Rng::Element.new(name: "city")
+city_element.text = Rng::Text.new
+
+# Add child elements to parent
+schema.element.element = [name_element, street_element, city_element]
+
+# Convert to RNC format
+rnc = Rng.to_rnc(schema)
+File.write('address.rnc', rnc)
+----
+
+== Schema object model
+
+=== Schema
+
+The Schema class represents a complete RELAX NG schema:
+
+[source,ruby]
+----
+# Simple element pattern
+schema = Rng::Schema.new(
+  element: Rng::Element.new(...)
+)
+
+# Grammar with named patterns
+schema = Rng::Schema.new(
+  start: Rng::Start.new(...),
+  define: [Rng::Define.new(...), ...],
+  datatypeLibrary: "http://www.w3.org/2001/XMLSchema-datatypes"
+)
+----
+
+=== Start
+
+The Start class defines the entry point of a schema:
+
+[source,ruby]
+----
+start = Rng::Start.new(
+  ref: Rng::Ref.new(name: "addressDef"),  # Reference to a named pattern
+  element: Rng::Element.new(...),         # Inline element definition
+  choice: Rng::Choice.new(...),           # Choice pattern
+  group: Rng::Group.new(...)              # Group pattern
+)
+----
+
+=== Define
+
+Define represents named pattern definitions:
+
+[source,ruby]
+----
+define = Rng::Define.new(
+  name: "addressDef",
+  element: Rng::Element.new(...),
+  choice: Rng::Choice.new(...),
+  group: Rng::Group.new(...)
+)
+----
+
+=== Element
+
+Element represents XML elements in the schema:
+
+[source,ruby]
+----
+element = Rng::Element.new(
+  name: "address",
+  attribute: Rng::Attribute.new(...),   # Attribute definition
+  element: Rng::Element.new(...),       # Child element definition
+  text: Rng::Text.new,                  # Text content
+  zeroOrMore: Rng::ZeroOrMore.new(...), # Elements that can appear zero or more times
+  oneOrMore: Rng::OneOrMore.new(...),   # Elements that must appear at least once
+  optional: Rng::Optional.new(...)      # Optional elements
+)
+----
+
+=== Attribute
+
+Attribute defines attributes for elements:
+
+[source,ruby]
+----
+attribute = Rng::Attribute.new(
+  name: "id",
+  data: Rng::Data.new(type: "ID")  # XML Schema datatype
+)
+----
+
+=== Pattern Classes
+
+The library includes classes for all RELAX NG patterns:
+
+* `Rng::Choice` - Represents a choice between patterns
+* `Rng::Group` - Represents a sequence of patterns
+* `Rng::Interleave` - Represents patterns that can be interleaved
+* `Rng::Mixed` - Represents mixed content (text and elements)
+* `Rng::Optional` - Represents an optional pattern
+* `Rng::ZeroOrMore` - Represents a pattern that can occur zero or more times
+* `Rng::OneOrMore` - Represents a pattern that must occur at least once
+* `Rng::Text` - Represents text content
+* `Rng::Empty` - Represents empty content
+* `Rng::Value` - Represents a specific value
+* `Rng::Data` - Represents a datatype
+* `Rng::List` - Represents a list of values
+* `Rng::Ref` - Represents a reference to a named pattern
+* `Rng::ParentRef` - Represents a reference to a pattern in a parent grammar
+* `Rng::ExternalRef` - Represents a reference to a pattern in an external grammar
+* `Rng::NotAllowed` - Represents a pattern that is not allowed
+
+== Schema formats
+
+=== RELAX NG XML syntax (RNG)
+
+XML syntax is the canonical form of RELAX NG schemas:
+
+[source,xml]
+----
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <start>
+    <element name="address">
+      <attribute name="id">
+        <data type="ID"/>
+      </attribute>
+      <element name="name">
+        <text/>
+      </element>
+      <element name="street">
+        <text/>
+      </element>
+      <element name="city">
+        <text/>
+      </element>
+    </element>
+  </start>
+</grammar>
+----
+
+=== RELAX NG Compact syntax (RNC)
+
+Compact syntax provides a more readable alternative:
+
+[source,rnc]
+----
+element address {
+  attribute id { text },
+  element name { text },
+  element street { text },
+  element city { text }
+}
+----
+
+== Advanced usage
+
+=== Working with complex patterns
+
+[source,ruby]
+----
+require 'rng'
+
+# Create a schema with choice patterns
+schema = Rng::Schema.new
+schema.start = Rng::Start.new
+
+# Create a choice between two elements
+choice = Rng::Choice.new
+choice.element = []
+
+# First option: name element
+name_element = Rng::Element.new(name: "name")
+name_element.text = Rng::Text.new
+choice.element << name_element
+
+# Second option: first name and last name elements
+first_name = Rng::Element.new(name: "firstName")
+first_name.text = Rng::Text.new
+
+last_name = Rng::Element.new(name: "lastName")
+last_name.text = Rng::Text.new
+
+# Group the first name and last name elements
+group = Rng::Group.new
+group.element = [first_name, last_name]
+
+# Add the group as the second choice
+choice.group = [group]
+
+# Add the choice to the start element
+schema.start.choice = choice
+
+# Convert to RNC format
+rnc = Rng.to_rnc(schema)
+puts rnc
+----
+
+=== Working with named patterns
+
+[source,ruby]
+----
+require 'rng'
+
+# Create a schema with named patterns
+schema = Rng::Schema.new
+schema.start = Rng::Start.new
+
+# Create a reference to a named pattern
+ref = Rng::Ref.new(name: "addressDef")
+schema.start.ref = ref
+
+# Define the named pattern
+define = Rng::Define.new(name: "addressDef")
+schema.define = [define]
+
+# Add an element to the named pattern
+element = Rng::Element.new(name: "address")
+element.attribute = Rng::Attribute.new(name: "id")
+element.attribute.data = Rng::Data.new(type: "ID")
+
+# Add child elements
+name_element = Rng::Element.new(name: "name")
+name_element.text = Rng::Text.new
+element.element = [name_element]
+
+# Add the element to the named pattern
+define.element = element
+
+# Convert to RNC format
+rnc = Rng.to_rnc(schema)
+puts rnc
+----
+
+=== Working with cardinality constraints
+
+[source,ruby]
+----
+require 'rng'
+
+# Create a schema with cardinality constraints
+schema = Rng::Schema.new
+schema.element = Rng::Element.new(name: "addressBook")
+
+# Create a card element that can appear zero or more times
+zero_or_more = Rng::ZeroOrMore.new
+card_element = Rng::Element.new(name: "card")
+
+# Add child elements to the card element
+name_element = Rng::Element.new(name: "name")
+name_element.text = Rng::Text.new
+
+email_element = Rng::Element.new(name: "email")
+email_element.text = Rng::Text.new
+
+# Create an optional note element
+optional = Rng::Optional.new
+note_element = Rng::Element.new(name: "note")
+note_element.text = Rng::Text.new
+optional.element = [note_element]
+
+# Add the child elements to the card element
+card_element.element = [name_element, email_element]
+card_element.optional = optional
+
+# Add the card element to the zero_or_more pattern
+zero_or_more.element = [card_element]
+
+# Add the zero_or_more pattern to the address book element
+schema.element.zeroOrMore = zero_or_more
+
+# Convert to RNC format
+rnc = Rng.to_rnc(schema)
+puts rnc
+----
+
+== Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin feature/my-new-feature`)
+5. Create a new Pull Request
+
+== License
+
+Copyright (c) 2025 Ribose Inc.
+
+This project is licensed under the BSD-2-Clause License.

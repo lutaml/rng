@@ -1,0 +1,13 @@
+start = element addressBook {
+  card*
+}
+
+card = element card {
+  cardContent
+}
+
+cardContent = (
+  element name { text },
+  element email { text },
+  element note { text }?
+)

@@ -1,0 +1,29 @@
+datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
+
+start = element document {
+  attribute version { xsd:decimal },
+  element header {
+    element title { text },
+    element author {
+      (element name { text } |
+       (element firstName { text },
+        element lastName { text }))
+    },
+    element date { xsd:date }
+  },
+  element body {
+    element section {
+      attribute id { xsd:ID },
+      element title { text },
+      element paragraph {
+        mixed {
+          (element emphasis { text } |
+           element link {
+             attribute href { xsd:anyURI },
+             text
+           })*
+        }
+      }+
+    }+
+  }
+}

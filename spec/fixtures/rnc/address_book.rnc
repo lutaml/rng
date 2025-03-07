@@ -1,0 +1,7 @@
+element addressBook {
+  element card {
+    element name { text },
+    element email { text },
+    element note { text }?
+  }*
+}
