@@ -2,6 +2,7 @@
 
 require "rng"
 require "xml/c14n"
+require "equivalent-xml"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

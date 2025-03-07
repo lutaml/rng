@@ -15,46 +15,55 @@ RSpec.describe Rng::Schema do
   end
 
   describe "Round-trip testing RNG" do
-    let(:rng_input) do
+    # Address Book Tests
+    let(:address_book_rng) do
       File.read("spec/fixtures/rng/address_book.rng")
     end
 
-    it "correctly round-trips RNG to model and back" do
-      # Parse the input RNG directly using Schema.from_xml
-      parsed = Rng::Schema.from_xml(rng_input)
-
-      # Generate XML from the model (using lutaml-model's existing functionality)
+    it "correctly round-trips address_book.rng (analogous comparison)" do
+      parsed = Rng::Schema.from_xml(address_book_rng)
       regenerated = parsed.to_xml
-
-      puts "Regenerated XML:"
-      puts regenerated
-      puts "Original RNG:"
-      puts rng_input
-
-      # Compare using the be_analogous_with matcher
-      expect(regenerated).to be_analogous_with(rng_input)
+      expect(regenerated).to be_analogous_with(address_book_rng)
     end
 
-    let(:complex_rng_input) do
-      File.read("spec/fixtures/rng/complex_example.rng")
-    end
-
-    it "correctly round-trips complex RNG to model and back" do
-      parsed = Rng::Schema.from_xml(complex_rng_input)
+    it "correctly round-trips address_book.rng (equivalent comparison)" do
+      parsed = Rng::Schema.from_xml(address_book_rng)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_analogous_with(complex_rng_input)
+      expect(regenerated).to be_equivalent_to(address_book_rng)
     end
-  end
 
-  describe "Round-trip testing for complex RNG schemas" do
-    let(:relaxng_schema_input) do
+    # RELAX NG Schema Tests
+    let(:relaxng_schema) do
       File.read("spec/fixtures/rng/relaxng.rng")
     end
 
-    it "correctly round-trips the RELAX NG schema itself" do
-      parsed = Rng::Schema.from_xml(relaxng_schema_input)
+    it "correctly round-trips relaxng.rng (analogous comparison)" do
+      parsed = Rng::Schema.from_xml(relaxng_schema)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_analogous_with(relaxng_schema_input)
+      expect(regenerated).to be_analogous_with(relaxng_schema)
+    end
+
+    it "correctly round-trips relaxng.rng (equivalent comparison)" do
+      parsed = Rng::Schema.from_xml(relaxng_schema)
+      regenerated = parsed.to_xml
+      expect(regenerated).to be_equivalent_to(relaxng_schema)
+    end
+
+    # Test Suite Schema Tests
+    let(:test_suite_rng) do
+      File.read("spec/fixtures/rng/testSuite.rng")
+    end
+
+    it "correctly round-trips testSuite.rng (analogous comparison)" do
+      parsed = Rng::Schema.from_xml(test_suite_rng)
+      regenerated = parsed.to_xml
+      expect(regenerated).to be_analogous_with(test_suite_rng)
+    end
+
+    it "correctly round-trips testSuite.rng (equivalent comparison)" do
+      parsed = Rng::Schema.from_xml(test_suite_rng)
+      regenerated = parsed.to_xml
+      expect(regenerated).to be_equivalent_to(test_suite_rng)
     end
   end
 
