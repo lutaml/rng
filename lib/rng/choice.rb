@@ -21,6 +21,7 @@ module Rng
     attribute :data, Data, collection: true, initialize_empty: true
     attribute :list, List, collection: true, initialize_empty: true
     attribute :notAllowed, NotAllowed, collection: true, initialize_empty: true
+    attribute :name, Name, collection: true, initialize_empty: true
 
     xml do
       root "choice", ordered: true
@@ -44,6 +45,7 @@ module Rng
       map_element "data", to: :data
       map_element "list", to: :list
       map_element "notAllowed", to: :notAllowed
+      map_element "name", to: :name
     end
   end
 end

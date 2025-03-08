@@ -5,6 +5,7 @@ source "https://rubygems.org"
 # Specify your gem's dependencies in rng.gemspec
 gemspec
 
+gem "diffy" # For generating human-readable diffs
 gem "equivalent-xml"
 gem "lutaml-model", github: "lutaml/lutaml-model", branch: "main"
 gem "nokogiri"

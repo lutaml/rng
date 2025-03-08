@@ -94,7 +94,7 @@ File.write('example.rng', rng_xml)
 require 'rng'
 
 # Create a schema with an address element
-schema = Rng::Schema.new
+schema = Rng::Grammar.new
 schema.element = Rng::Element.new(
   name: "address"
 )
@@ -127,19 +127,19 @@ File.write('address.rnc', rnc)
 
 == Schema object model
 
-=== Schema
+=== Grammar
 
-The Schema class represents a complete RELAX NG schema:
+The Grammar class represents a complete RELAX NG schema:
 
 [source,ruby]
 ----
 # Simple element pattern
-schema = Rng::Schema.new(
+schema = Rng::Grammar.new(
   element: Rng::Element.new(...)
 )
 
 # Grammar with named patterns
-schema = Rng::Schema.new(
+schema = Rng::Grammar.new(
   start: Rng::Start.new(...),
   define: [Rng::Define.new(...), ...],
   datatypeLibrary: "http://www.w3.org/2001/XMLSchema-datatypes"
@@ -275,7 +275,7 @@ element address {
 require 'rng'
 
 # Create a schema with choice patterns
-schema = Rng::Schema.new
+schema = Rng::Grammar.new
 schema.start = Rng::Start.new
 
 # Create a choice between two elements
@@ -316,7 +316,7 @@ puts rnc
 require 'rng'
 
 # Create a schema with named patterns
-schema = Rng::Schema.new
+schema = Rng::Grammar.new
 schema.start = Rng::Start.new
 
 # Create a reference to a named pattern
@@ -352,7 +352,7 @@ puts rnc
 require 'rng'
 
 # Create a schema with cardinality constraints
-schema = Rng::Schema.new
+schema = Rng::Grammar.new
 schema.element = Rng::Element.new(name: "addressBook")
 
 # Create a card element that can appear zero or more times

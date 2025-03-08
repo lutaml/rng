@@ -23,12 +23,11 @@ module Rng
 
   def parse_rnc(rnc)
     # Parse RNC and convert to RNG
-    rng_xml = RncParser.parse(rnc)
-    parse(rng_xml)
+    ParseRnc.parse(rnc)
   end
 
   def to_rnc(schema)
     # Convert RNG schema to RNC
-    RncParser.to_rnc(schema)
+    ToRnc.convert(schema)
   end
 end

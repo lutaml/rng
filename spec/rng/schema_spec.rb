@@ -1,6 +1,6 @@
 require "spec_helper"
 
-RSpec.describe Rng::Schema do
+RSpec.describe Rng::Grammar do
   describe "RNG parsing" do
     let(:rng_input) do
       File.read("spec/fixtures/rng/address_book.rng")
@@ -8,7 +8,7 @@ RSpec.describe Rng::Schema do
 
     it "correctly parses RNG" do
       parsed = Rng.parse(rng_input)
-      expect(parsed).to be_a(Rng::Schema)
+      expect(parsed).to be_a(Rng::Grammar)
       expect(parsed.element).to be_empty
       expect(parsed.start.element.first.name).to eq("addressBook")
     end
@@ -21,15 +21,15 @@ RSpec.describe Rng::Schema do
     end
 
     it "correctly round-trips address_book.rng (analogous comparison)" do
-      parsed = Rng::Schema.from_xml(address_book_rng)
+      parsed = Rng::Grammar.from_xml(address_book_rng)
       regenerated = parsed.to_xml
       expect(regenerated).to be_analogous_with(address_book_rng)
     end
 
-    it "correctly round-trips address_book.rng (equivalent comparison)" do
-      parsed = Rng::Schema.from_xml(address_book_rng)
+    it "correctly round-trips address_book.rng (formatted equivalent comparison)" do
+      parsed = Rng::Grammar.from_xml(address_book_rng)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_equivalent_to(address_book_rng)
+      expect(regenerated).to be_equivalent_to_xml(address_book_rng)
     end
 
     # RELAX NG Schema Tests
@@ -38,15 +38,15 @@ RSpec.describe Rng::Schema do
     end
 
     it "correctly round-trips relaxng.rng (analogous comparison)" do
-      parsed = Rng::Schema.from_xml(relaxng_schema)
+      parsed = Rng::Grammar.from_xml(relaxng_schema)
       regenerated = parsed.to_xml
       expect(regenerated).to be_analogous_with(relaxng_schema)
     end
 
-    it "correctly round-trips relaxng.rng (equivalent comparison)" do
-      parsed = Rng::Schema.from_xml(relaxng_schema)
+    it "correctly round-trips relaxng.rng (formatted equivalent comparison)" do
+      parsed = Rng::Grammar.from_xml(relaxng_schema)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_equivalent_to(relaxng_schema)
+      expect(regenerated).to be_equivalent_to_xml(relaxng_schema)
     end
 
     # Test Suite Schema Tests
@@ -55,15 +55,15 @@ RSpec.describe Rng::Schema do
     end
 
     it "correctly round-trips testSuite.rng (analogous comparison)" do
-      parsed = Rng::Schema.from_xml(test_suite_rng)
+      parsed = Rng::Grammar.from_xml(test_suite_rng)
       regenerated = parsed.to_xml
       expect(regenerated).to be_analogous_with(test_suite_rng)
     end
 
-    it "correctly round-trips testSuite.rng (equivalent comparison)" do
-      parsed = Rng::Schema.from_xml(test_suite_rng)
+    it "correctly round-trips testSuite.rng (formatted equivalent comparison)" do
+      parsed = Rng::Grammar.from_xml(test_suite_rng)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_equivalent_to(test_suite_rng)
+      expect(regenerated).to be_equivalent_to_xml(test_suite_rng)
     end
   end
 
@@ -74,7 +74,7 @@ RSpec.describe Rng::Schema do
 
     it "correctly parses RNC" do
       parsed = Rng.parse_rnc(rnc_input)
-      expect(parsed).to be_a(Rng::Schema)
+      expect(parsed).to be_a(Rng::Grammar)
       expect(parsed.element).to be_a(Rng::Element)
       expect(parsed.element.name).to eq("addressBook")
     end
@@ -103,7 +103,7 @@ RSpec.describe Rng::Schema do
 
     it "correctly converts RNC to RNG" do
       parsed = Rng.parse_rnc(rnc_input)
-      expect(parsed).to be_a(Rng::Schema)
+      expect(parsed).to be_a(Rng::Grammar)
       expect(parsed.element).to be_a(Rng::Element)
       expect(parsed.element.name).to eq("addressBook")
     end

@@ -1,6 +1,6 @@
 require "parslet"
 require "nokogiri"
-require_relative "schema"
+require_relative "grammar"
 
 module Rng
   class RncParser < Parslet::Parser

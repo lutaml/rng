@@ -23,6 +23,7 @@ module Rng
     attribute :list, List
     attribute :notAllowed, NotAllowed
     attribute :attribute, Attribute
+    attribute :grammar, Grammar
 
     xml do
       root "define", ordered: true
@@ -47,6 +48,7 @@ module Rng
       map_element "list", to: :list
       map_element "notAllowed", to: :notAllowed
       map_element "attribute", to: :attribute
+      map_element "grammar", to: :grammar
     end
   end
 end

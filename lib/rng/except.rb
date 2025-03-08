@@ -6,6 +6,7 @@ module Rng
     attribute :ns, :string
     attribute :ns_name, NsName, collection: true
     attribute :datatypeLibrary, :string
+    attribute :name, Name, collection: true
     attribute :element, Element, collection: true, initialize_empty: true
     attribute :attribute, Attribute, collection: true, initialize_empty: true
     attribute :ref, Ref, collection: true, initialize_empty: true
@@ -29,6 +30,7 @@ module Rng
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns
       map_attribute "datatypeLibrary", to: :datatypeLibrary
+      map_element "name", to: :name
       map_element "element", to: :element
       map_element "attribute", to: :attribute
       map_element "ref", to: :ref
@@ -45,6 +47,7 @@ module Rng
       map_element "data", to: :data
       map_element "list", to: :list
       map_element "notAllowed", to: :notAllowed
+      map_element "nsName", to: :ns_name
     end
   end
 end

@@ -18,7 +18,7 @@ RSpec.describe Rng::RncParser do
 
       it "correctly parses the schema" do
         result = parser.parse(input)
-        expect(result).to be_a(Rng::Schema)
+        expect(result).to be_a(Rng::Grammar)
         expect(result.start.elements.first.name).to eq("addressBook")
         expect(result.start.elements.first.elements.first.name).to eq("card")
         expect(result.start.elements.first.elements.first.elements.map(&:name)).to eq(%w[name email])
