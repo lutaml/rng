@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "lutaml/model"
 
 module Rng
@@ -27,11 +29,18 @@ module Rng
 
     xml do
       root "attribute", ordered: true
+      namespace "http://relaxng.org/ns/structure/1.0"
 
       map_element "name", to: :name
       map_attribute "name", to: :attr_name
-      map_attribute "ns", to: :ns
-      map_attribute "datatypeLibrary", to: :datatypeLibrary
+      map_attribute "ns", to: :ns, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
+      map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
       map_attribute "id", to: :id
       map_element "ref", to: :ref
       map_element "choice", to: :choice
@@ -42,7 +51,10 @@ module Rng
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
       map_element "anyName", to: :anyName
-      map_element "text", to: :text
+      map_element "text", to: :text, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data

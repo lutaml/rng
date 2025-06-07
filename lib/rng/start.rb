@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "lutaml/model"
 
 module Rng
@@ -20,15 +22,23 @@ module Rng
     attribute :value, Value
     attribute :data, Data
     attribute :list, List
+    attribute :parentRef, ParentRef
     attribute :notAllowed, NotAllowed
     attribute :grammar, Grammar
 
     xml do
       root "start", ordered: true
+      namespace "http://relaxng.org/ns/structure/1.0"
 
       map_attribute "id", to: :id
-      map_attribute "ns", to: :ns
-      map_attribute "datatypeLibrary", to: :datatypeLibrary
+      map_attribute "ns", to: :ns, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
+      map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
       map_attribute "combine", to: :combine
 
       map_element "ref", to: :ref
@@ -45,6 +55,7 @@ module Rng
       map_element "value", to: :value
       map_element "data", to: :data
       map_element "list", to: :list
+      map_element "parentRef", to: :parentRef
       map_element "notAllowed", to: :notAllowed
       map_element "grammar", to: :grammar
     end

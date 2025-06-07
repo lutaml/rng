@@ -26,7 +26,7 @@ RSpec.configure do |config|
     def format_xml(xml_string)
       # Use Nokogiri to parse and format the XML
       # Strip comments for comparison purposes - we care about structure, not documentation
-      doc = Nokogiri::XML(xml_string) { |config| config.noblanks }
+      doc = Nokogiri::XML(xml_string, &:noblanks)
 
       # Remove all comment nodes before comparison
       doc.xpath("//comment()").remove

@@ -2,7 +2,10 @@
 
 require "lutaml/model"
 require "lutaml/model/xml_adapter/nokogiri_adapter"
-Lutaml::Model::Config.xml_adapter_type = :nokogiri
+
+Lutaml::Model::Config.configure do |config|
+  config.xml_adapter = Lutaml::Model::XmlAdapter::NokogiriAdapter
+end
 
 module Rng
   class Error < StandardError; end
@@ -18,7 +21,7 @@ module Rng
   module_function
 
   def parse(rng, location: nil, nested_schema: false)
-    Schema.from_xml(rng)
+    Grammar.from_xml(rng)
   end
 
   def parse_rnc(rnc)

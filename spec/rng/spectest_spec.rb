@@ -15,9 +15,9 @@ def process_test_suite(suite_element, context_description = "")
 
   # Build context description
   context_desc = context_description
-  if documentation.length > 0
+  if !documentation.empty?
     context_desc = context_desc.empty? ? documentation : "#{context_desc}: #{documentation}"
-  elsif section.length > 0
+  elsif !section.empty?
     context_desc = context_desc.empty? ? "Section #{section}" : "#{context_desc} Section #{section}"
   end
 
@@ -32,9 +32,9 @@ def process_test_suite(suite_element, context_description = "")
       test_section = test_case.xpath("./section").text.strip
 
       # Create descriptive test name
-      test_desc = if test_documentation.length > 0
+      test_desc = if !test_documentation.empty?
                     test_documentation
-                  elsif test_section.length > 0
+                  elsif !test_section.empty?
                     "Section #{test_section} compliance"
                   else
                     "Schema validation"
@@ -68,10 +68,17 @@ def process_test_suite(suite_element, context_description = "")
           root_element_name = xml_doc.root&.name
 
           # Choose the appropriate class based on the root element name
-          schema = if root_element_name == "grammar"
+          schema = case root_element_name
+                   when "grammar"
                      Rng::Grammar.from_xml(schema_xml)
-                   elsif root_element_name == "element"
+                   when "element"
                      Rng::Element.from_xml(schema_xml)
+                   when "group"
+                     Rng::Group.from_xml(schema_xml)
+                   when "choice"
+                     Rng::Choice.from_xml(schema_xml)
+                   when "externalRef"
+                     Rng::ExternalRef.from_xml(schema_xml)
                    else
                      # Default to Schema for other cases
                      raise "Unknown root element: #{root_element_name}"

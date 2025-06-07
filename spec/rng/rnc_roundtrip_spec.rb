@@ -35,7 +35,7 @@ RSpec.describe "RNG to RNC Round-trip Tests" do
 
       it "can parse RNC back to RNG" do
         skip "RNC parser not yet implemented"
-        simple_rnc = "element foo { empty }"
+        "element foo { empty }"
 
         # This would be the method to parse RNC to RNG model
         # rng_schema = Rng.parse_rnc(simple_rnc)

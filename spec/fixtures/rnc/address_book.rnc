@@ -1,0 +1,10 @@
+# Address Book schema in RNC (RELAX NG Compact Syntax)
+# Equivalent to address_book.rng
+
+start = element addressBook {
+  element card { cardContent }*
+}
+
+cardContent =
+  element name { text },
+  element email { text }

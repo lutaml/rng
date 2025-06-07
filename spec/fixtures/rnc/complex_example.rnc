@@ -1,0 +1,61 @@
+# A more complex RNC example demonstrating various RELAX NG features
+
+# Default namespace
+default namespace = "http://example.com/complex"
+
+# Grammar with namespace definitions
+grammar {
+  start = element document {
+    attribute version { "1.0" },
+    attribute xmlns { "http://example.com/complex" }?,
+
+    # Mixed content with interleaved elements
+    mixed {
+      element title { text },
+      element metadata {
+        attribute created { xsd:date },
+        attribute modified { xsd:date }?
+      },
+
+      # Choice between section types
+      (normalSection | specialSection)+
+    }
+  }
+
+  # Define a normal section pattern
+  normalSection =
+    element section {
+      attribute id { xsd:ID },
+      element heading { text },
+
+      # Zero or more paragraphs
+      element para {
+        # Allow mixed content with formatting
+        mixed { formatting* }
+      }*
+    }
+
+  # Define a special section with different content model
+  specialSection =
+    element specialSection {
+      attribute type { "note" | "warning" | "tip" },
+      element heading { text },
+
+      # One or more items in a list
+      element list {
+        element item {
+          mixed { formatting* }
+        }+
+      }
+    }
+
+  # Inline formatting elements (used in mixed content)
+  formatting =
+    element em { text } |
+    element strong { text } |
+    element code { text } |
+    element link {
+      attribute href { xsd:anyURI },
+      text
+    }
+}

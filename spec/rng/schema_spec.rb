@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "spec_helper"
 
 RSpec.describe Rng::Grammar do
@@ -10,7 +12,7 @@ RSpec.describe Rng::Grammar do
       parsed = Rng.parse(rng_input)
       expect(parsed).to be_a(Rng::Grammar)
       expect(parsed.element).to be_empty
-      expect(parsed.start.element.first.name).to eq("addressBook")
+      expect(parsed.start.element.attr_name).to eq("addressBook")
     end
   end
 
@@ -131,7 +133,7 @@ RSpec.describe Rng::Grammar do
       parsed_rnc = Rng.parse_rnc(rnc_input)
       rng_xml = Rng::RncParser.parse(rnc_input)
       parsed_rng = Rng.parse(rng_xml)
-      rnc = Rng.to_rnc(parsed_rng)
+      Rng.to_rnc(parsed_rng)
 
       # Compare key properties
       expect(parsed_rng.element.name).to eq(parsed_rnc.element.name)
