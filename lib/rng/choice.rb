@@ -27,6 +27,7 @@ module Rng
 
     xml do
       root "choice", ordered: true
+      namespace "http://relaxng.org/ns/structure/1.0"
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

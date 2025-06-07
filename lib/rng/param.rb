@@ -11,6 +11,9 @@ module Rng
     attribute :value, :string
 
     xml do
+      root "param", ordered: true
+      namespace "http://relaxng.org/ns/structure/1.0"
+
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
