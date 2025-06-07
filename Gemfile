@@ -7,7 +7,7 @@ gemspec
 
 gem "diffy" # For generating human-readable diffs
 gem "equivalent-xml"
-gem "lutaml-model", github: "lutaml/lutaml-model", branch: "main"
+gem "lutaml-model"
 gem "nokogiri"
 gem "rake", "~> 13.0"
 gem "rspec", "~> 3.0"
