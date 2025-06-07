@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "parslet"
 require "nokogiri"
 require_relative "grammar"
@@ -104,8 +106,6 @@ module Rng
       builder.build(schema)
     end
 
-    private
-
     def self.convert_to_rng(tree)
       builder = Nokogiri::XML::Builder.new(encoding: "UTF-8") do |xml|
         if tree[:root].key?(:start)
@@ -120,13 +120,11 @@ module Rng
             end
 
             # Process named patterns
-            if tree[:definitions]
-              tree[:definitions].each do |def_item|
-                next unless def_item.key?(:name)
+            tree[:definitions]&.each do |def_item|
+              next unless def_item.key?(:name)
 
-                xml.define(name: def_item[:name][:identifier].to_s) do
-                  process_content_item(xml, def_item[:pattern])
-                end
+              xml.define(name: def_item[:name][:identifier].to_s) do
+                process_content_item(xml, def_item[:pattern])
               end
             end
           end
@@ -314,7 +312,7 @@ module Rng
         else
           group_parts << build_pattern(node.group)
         end
-        content_parts << "(" + group_parts.join(", ") + ")"
+        content_parts << "(#{group_parts.join(", ")})"
       end
 
       # Process ref
@@ -381,7 +379,7 @@ module Rng
         else
           group_parts << build_pattern(node.group)
         end
-        "(" + group_parts.join(", ") + ")"
+        "(#{group_parts.join(", ")})"
       elsif node.text
         "text"
       elsif node.empty

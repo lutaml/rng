@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "lutaml/model"
 
 module Rng
@@ -8,9 +10,16 @@ module Rng
     attribute :value, :string, default: ""
 
     xml do
+      root "text"
       map_attribute "id", to: :id
-      map_attribute "ns", to: :ns
-      map_attribute "datatypeLibrary", to: :datatypeLibrary
+      map_attribute "ns", to: :ns, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
+      map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
       map_content to: :value
     end
   end

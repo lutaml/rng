@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "lutaml/model"
 
 module Rng
@@ -26,10 +28,17 @@ module Rng
 
     xml do
       root "except", ordered: true
+      namespace "http://relaxng.org/ns/structure/1.0"
 
       map_attribute "id", to: :id
-      map_attribute "ns", to: :ns
-      map_attribute "datatypeLibrary", to: :datatypeLibrary
+      map_attribute "ns", to: :ns, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
+      map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
+        from: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
+      }
       map_element "name", to: :name
       map_element "element", to: :element
       map_element "attribute", to: :attribute

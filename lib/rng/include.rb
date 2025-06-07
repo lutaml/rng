@@ -3,18 +3,20 @@
 require "lutaml/model"
 
 module Rng
-  class NotAllowed < Lutaml::Model::Serializable
-    attribute :id, :string
+  class Include < Lutaml::Model::Serializable
+    attribute :href, :string
     attribute :ns, :string
-    attribute :datatypeLibrary, :string
+    attribute :grammar, Grammar
 
     xml do
-      map_attribute "id", to: :id
+      root "include"
+
+      map_attribute "href", to: :href
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
         to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "datatypeLibrary", to: :datatypeLibrary
+      map_content to: :grammar
     end
   end
 end
