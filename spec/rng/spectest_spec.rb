@@ -77,6 +77,8 @@ def process_test_suite(suite_element, context_description = "")
                      Rng::Group.from_xml(schema_xml)
                    when "choice"
                      Rng::Choice.from_xml(schema_xml)
+                   when "notAllowed"
+                     Rng::NotAllowed.from_xml(schema_xml)
                    when "externalRef"
                      Rng::ExternalRef.from_xml(schema_xml)
                    else
