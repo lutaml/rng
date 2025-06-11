@@ -8,7 +8,7 @@ module Rng
     attribute :id, :string
     attribute :ns, :string
     attribute :datatypeLibrary, :string
-    attribute :start, Start
+    attribute :start, Start, collection: true
     attribute :define, Define, collection: true, initialize_empty: true
     attribute :element, Element, collection: true
     attribute :include, Include, collection: true

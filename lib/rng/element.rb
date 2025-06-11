@@ -5,7 +5,7 @@ require "lutaml/model"
 module Rng
   class Element < Lutaml::Model::Serializable
     attribute :attr_name, :string
-    attribute :name, :string
+    attribute :name, Name
     attribute :ns, :string
     attribute :ns_name, NsName
     attribute :datatypeLibrary, :string

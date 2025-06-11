@@ -7,6 +7,7 @@ module Rng
     attribute :id, :string
     attribute :ns, :string
     attribute :datatypeLibrary, :string
+    attribute :externalRef, ExternalRef
     attribute :element, Element, collection: true, initialize_empty: true
     attribute :attribute, Attribute, collection: true, initialize_empty: true
     attribute :ref, Ref, collection: true, initialize_empty: true
@@ -53,6 +54,7 @@ module Rng
       map_element "data", to: :data
       map_element "list", to: :list
       map_element "notAllowed", to: :notAllowed
+      map_element "externalRef", to: :externalRef
     end
   end
 end

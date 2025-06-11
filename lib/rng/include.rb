@@ -6,6 +6,7 @@ module Rng
   class Include < Lutaml::Model::Serializable
     attribute :href, :string
     attribute :ns, :string
+    attribute :define, Define
     attribute :grammar, Grammar
 
     xml do
@@ -17,6 +18,7 @@ module Rng
         to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
       map_content to: :grammar
+      map_element "define", to: :define
     end
   end
 end
