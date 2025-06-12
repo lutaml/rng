@@ -5,7 +5,7 @@ require "lutaml/model"
 module Rng
   class Element < Lutaml::Model::Serializable
     attribute :attr_name, :string
-    attribute :name, :string
+    attribute :name, Name
     attribute :ns, :string
     attribute :ns_name, NsName
     attribute :datatypeLibrary, :string
@@ -18,7 +18,7 @@ module Rng
     attribute :mixed, Mixed
     attribute :optional, Optional
     attribute :zeroOrMore, ZeroOrMore
-    attribute :oneOrMore, OneOrMore
+    attribute :oneOrMore, OneOrMore, collection: true
     attribute :anyName, AnyName
     attribute :text, Text
     attribute :empty, Empty
