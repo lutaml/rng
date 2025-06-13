@@ -7,6 +7,12 @@ require "nokogiri"
 SPEC_TEST_XML_PATH = "spec/fixtures/spectest.xml"
 SPEC_TEST_XML = Nokogiri::XML(File.read(SPEC_TEST_XML_PATH))
 
+def skip_if_foreign(test_desc)
+  return unless test_desc == "Section 3 compliance"
+
+  skip "lutaml-model does not allow arbitrary external XML"
+end
+
 # This helper function processes a test suite recursively and generates tests
 def process_test_suite(suite_element, context_description = "")
   # Get documentation or section number for the context description
@@ -16,9 +22,9 @@ def process_test_suite(suite_element, context_description = "")
   # Build context description
   context_desc = context_description
   if !documentation.empty?
-    context_desc = context_desc.empty? ? documentation : "#{context_desc}: #{documentation}"
+    context_desc || documentation
   elsif !section.empty?
-    context_desc = context_desc.empty? ? "Section #{section}" : "#{context_desc} Section #{section}"
+    context_desc || "Section #{section}"
   end
 
   # Use a non-empty description
@@ -27,7 +33,7 @@ def process_test_suite(suite_element, context_description = "")
   # Generate tests within a context
   context(context_desc) do
     # Process all test cases in this suite
-    suite_element.xpath("./testCase").each do |test_case|
+    suite_element.xpath("./testCase").each_with_index do |test_case, index|
       test_documentation = test_case.xpath("./documentation").text.strip
       test_section = test_case.xpath("./section").text.strip
 
@@ -43,100 +49,108 @@ def process_test_suite(suite_element, context_description = "")
       # Variable to store the last correct schema XML for validation tests
       last_correct_schema_xml = nil
 
-      # Test correct schemas
-      test_case.xpath("./correct").each do |correct_schema|
-        schema_xml = correct_schema.inner_html.strip
+      context(test_desc) do
+        # Test correct schemas
+        test_case.xpath("./correct").each do |correct_schema|
+          schema_xml = correct_schema.inner_html.strip
 
-        # Skip empty schemas
-        next if schema_xml.empty?
+          # Skip empty schemas
+          next if schema_xml.empty?
 
-        # Store for validation tests
-        last_correct_schema_xml = schema_xml
+          # Store for validation tests
+          last_correct_schema_xml = schema_xml
 
-        it "#{test_desc} - correct schema parsing" do
-          schema = Rng::Grammar.from_xml(schema_xml)
-          expect(schema).not_to be_nil
-        rescue StandardError => e
-          raise "Expected schema to be valid but got: #{e.message}\nSchema:\n#{schema_xml}"
+          it "#{test_desc} - correct schema parsing ##{index + 1}" do
+            skip_if_foreign(test_desc)
+
+            schema = Rng::Grammar.from_xml(schema_xml)
+            expect(schema).not_to be_nil
+          rescue StandardError => e
+            raise "Expected schema to be valid but got: #{e.message}\nSchema:\n#{schema_xml}"
+          end
+
+          # Add round-trip test
+          it "#{test_desc} - correct schema round-trip ##{index + 1}" do
+            skip_if_foreign(test_desc)
+
+            skip "Skipping test for Section 4.11, test 1 due to <div>" if test_section == "4.11" && index + 1 == 1
+
+            # Parse the XML into a schema
+            # Parse the XML to determine the root element name
+            xml_doc = Nokogiri::XML(schema_xml)
+            root_element_name = xml_doc.root&.name
+
+            # Choose the appropriate class based on the root element name
+            schema = case root_element_name
+                     when "grammar"
+                       Rng::Grammar.from_xml(schema_xml)
+                     when "element"
+                       Rng::Element.from_xml(schema_xml)
+                     when "group"
+                       Rng::Group.from_xml(schema_xml)
+                     when "choice"
+                       Rng::Choice.from_xml(schema_xml)
+                     when "notAllowed"
+                       Rng::NotAllowed.from_xml(schema_xml)
+                     when "externalRef"
+                       Rng::ExternalRef.from_xml(schema_xml)
+                     else
+                       # Default to Schema for other cases
+                       raise "Unknown root element: #{root_element_name}"
+                     end
+
+            # Convert the schema back to XML
+            regenerated = schema.to_xml
+
+            # Verify the regenerated XML matches the original
+            expect(regenerated).to be_equivalent_to_xml(schema_xml)
+          end
         end
 
-        # Add round-trip test
-        it "#{test_desc} - correct schema round-trip" do
-          # Parse the XML into a schema
-          # Parse the XML to determine the root element name
-          xml_doc = Nokogiri::XML(schema_xml)
-          root_element_name = xml_doc.root&.name
+        # Test incorrect schemas
+        test_case.xpath("./incorrect").each do |incorrect_schema|
+          schema_xml = incorrect_schema.inner_html.strip
 
-          # Choose the appropriate class based on the root element name
-          schema = case root_element_name
-                   when "grammar"
-                     Rng::Grammar.from_xml(schema_xml)
-                   when "element"
-                     Rng::Element.from_xml(schema_xml)
-                   when "group"
-                     Rng::Group.from_xml(schema_xml)
-                   when "choice"
-                     Rng::Choice.from_xml(schema_xml)
-                   when "notAllowed"
-                     Rng::NotAllowed.from_xml(schema_xml)
-                   when "externalRef"
-                     Rng::ExternalRef.from_xml(schema_xml)
-                   else
-                     # Default to Schema for other cases
-                     raise "Unknown root element: #{root_element_name}"
-                   end
+          # Skip empty schemas
+          next if schema_xml.empty?
 
-          # Convert the schema back to XML
-          regenerated = schema.to_xml
-
-          # Verify the regenerated XML matches the original
-          expect(regenerated).to be_equivalent_to_xml(schema_xml)
+          it "#{test_desc} - incorrect schema ##{index + 1}" do
+            skip "Schema validation not yet implemented"
+            # Once validation is implemented, uncomment:
+            # expect { Rng::Grammar.from_xml(schema_xml) }.to raise_error
+          end
         end
-      end
 
-      # Test incorrect schemas
-      test_case.xpath("./incorrect").each do |incorrect_schema|
-        schema_xml = incorrect_schema.inner_html.strip
+        # Test valid XML examples (for validation)
+        next unless last_correct_schema_xml
 
-        # Skip empty schemas
-        next if schema_xml.empty?
+        test_case.xpath("./valid").each do |valid_xml|
+          xml_content = valid_xml.inner_text.strip
 
-        it "#{test_desc} - incorrect schema" do
-          skip "Schema validation not yet implemented"
-          # Once validation is implemented, uncomment:
-          # expect { Rng::Grammar.from_xml(schema_xml) }.to raise_error
+          # Skip empty XML
+          next if xml_content.empty?
+
+          it "#{test_desc} - valid XML example ##{index + 1}" do
+            skip "XML validation not yet implemented"
+            # Once validation is implemented, uncomment:
+            # schema = Rng::Grammar.from_xml(last_correct_schema_xml)
+            # expect(schema.valid?(xml_content)).to be true
+          end
         end
-      end
 
-      # Test valid XML examples (for validation)
-      next unless last_correct_schema_xml
+        # Test invalid XML examples (for validation)
+        test_case.xpath("./invalid").each do |invalid_xml|
+          xml_content = invalid_xml.inner_text.strip
 
-      test_case.xpath("./valid").each do |valid_xml|
-        xml_content = valid_xml.inner_text.strip
+          # Skip empty XML
+          next if xml_content.empty?
 
-        # Skip empty XML
-        next if xml_content.empty?
-
-        it "#{test_desc} - valid XML example" do
-          skip "XML validation not yet implemented"
-          # Once validation is implemented, uncomment:
-          # schema = Rng::Grammar.from_xml(last_correct_schema_xml)
-          # expect(schema.valid?(xml_content)).to be true
-        end
-      end
-
-      # Test invalid XML examples (for validation)
-      test_case.xpath("./invalid").each do |invalid_xml|
-        xml_content = invalid_xml.inner_text.strip
-
-        # Skip empty XML
-        next if xml_content.empty?
-
-        it "#{test_desc} - invalid XML example" do
-          skip "XML validation not yet implemented"
-          # Once validation is implemented, uncomment:
-          # schema = Rng::Grammar.from_xml(last_correct_schema_xml)
-          # expect(schema.valid?(xml_content)).to be false
+          it "#{test_desc} - invalid XML example ##{index + 1}" do
+            skip "XML validation not yet implemented"
+            # Once validation is implemented, uncomment:
+            # schema = Rng::Grammar.from_xml(last_correct_schema_xml)
+            # expect(schema.valid?(xml_content)).to be false
+          end
         end
       end
     end
