@@ -15,9 +15,9 @@ module Rng
     attribute :group, Group
     attribute :interleave, Interleave
     attribute :mixed, Mixed
-    attribute :optional, Optional
-    attribute :zeroOrMore, ZeroOrMore
-    attribute :oneOrMore, OneOrMore
+    attribute :optional, Optional, collection: true
+    attribute :zeroOrMore, ZeroOrMore, collection: true
+    attribute :oneOrMore, OneOrMore, collection: true
     attribute :text, Text
     attribute :empty, Empty
     attribute :value, Value
