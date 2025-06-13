@@ -32,7 +32,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "lutaml-model"
   spec.add_dependency "nokogiri"
   spec.add_dependency "parslet"
-  spec.add_dependency "zeitwerk"
 
   # spec.add_dependency "thor"
   spec.metadata["rubygems_mfa_required"] = "true"
