@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class AnyName < Lutaml::Model::Serializable
     attribute :name, :string
@@ -11,7 +9,9 @@ module Rng
     attribute :except, Except
 
     xml do
-      root "anyName", ordered: true
+      element "anyName"
+      ordered
+
       map_attribute "name", to: :name
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

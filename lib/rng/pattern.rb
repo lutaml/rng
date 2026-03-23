@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   # Base class for all pattern elements
   class Pattern < Lutaml::Model::Serializable
@@ -10,8 +8,10 @@ module Rng
     attribute :datatypeLibrary, :string
 
     xml do
-      root "pattern", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "pattern"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

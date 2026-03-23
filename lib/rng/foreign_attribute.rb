@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   # Represents a foreign attribute (from a non-RELAX NG namespace)
   # Used in annotation blocks like [eg:foo = "value"]
@@ -12,7 +10,7 @@ module Rng
 
     xml do
       root "attribute"
-      namespace "http://relaxng.org/ns/structure/1.0"
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "name", to: :name
       map_attribute "namespace", to: :namespace

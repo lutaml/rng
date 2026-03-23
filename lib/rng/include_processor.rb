@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 require "set"
-require_relative "rnc_parser"
-require_relative "rnc_to_rng_converter"
-require_relative "grammar"
-require_relative "parse_tree_processor"
 
 module Rng
   # Handles RNC file inclusion and grammar merging

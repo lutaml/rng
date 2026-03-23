@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Include < Lutaml::Model::Serializable
     attribute :href, :string

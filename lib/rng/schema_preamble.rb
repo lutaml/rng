@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "namespace_declaration"
-require_relative "datatype_declaration"
-
 module Rng
   # Container for namespace and datatype declarations in RNC schema
   #

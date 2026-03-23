@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Interleave < Lutaml::Model::Serializable
     attribute :id, :string
@@ -25,8 +23,10 @@ module Rng
     attribute :notAllowed, NotAllowed, collection: true, initialize_empty: true
 
     xml do
-      root "interleave", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "interleave"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

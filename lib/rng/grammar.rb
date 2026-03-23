@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   # This represents the RNG schema
   class Grammar < Lutaml::Model::Serializable
@@ -14,8 +12,10 @@ module Rng
     attribute :include, Include, collection: true
 
     xml do
-      root "grammar", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "grammar"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },

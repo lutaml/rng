@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Start < Lutaml::Model::Serializable
     attribute :id, :string
@@ -25,13 +23,15 @@ module Rng
     attribute :parentRef, ParentRef
     attribute :notAllowed, NotAllowed
     attribute :grammar, Grammar
-    attribute :documentation, :string
+    attribute :documentation, Documentation
     attribute :foreign_attributes, ForeignAttribute, collection: true
     attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
-      root "start", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "start"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {
@@ -62,9 +62,7 @@ module Rng
       map_element "parentRef", to: :parentRef
       map_element "notAllowed", to: :notAllowed
       map_element "grammar", to: :grammar
-      map_element "documentation", to: :documentation,
-                                   namespace: "http://relaxng.org/ns/compatibility/annotations/1.0",
-                                   prefix: "a"
+      map_element "documentation", to: :documentation
     end
   end
 end

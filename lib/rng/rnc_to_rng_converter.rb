@@ -2,7 +2,6 @@
 
 require "nokogiri"
 require "set"
-require_relative "grammar"
 
 module Rng
   # RncToRngConverter converts RNC parse trees to RNG XML format.
@@ -228,10 +227,7 @@ module Rng
       return unless item[:annotations]
 
       # Use provided processor or create one
-      proc = processor || begin
-        require_relative "parse_tree_processor"
-        ParseTreeProcessor.new({})
-      end
+      proc = processor || ParseTreeProcessor.new({})
 
       # Extract annotations using processor
       annotations = proc.extract_annotations(item)
@@ -351,12 +347,12 @@ module Rng
             # Convert hex to Unicode character with validation
             hex = extract_string(part[:hex_escape][:hex])
             code_point = hex.to_i(16)
-            
+
             # DEBUG output
             if ENV['RNG_DEBUG']
               puts "DEBUG: Processing hex escape: #{hex} -> code_point: 0x#{code_point.to_s(16).upcase}"
             end
-            
+
             validate_unicode_codepoint(code_point, context)
             [code_point].pack("U")
           elsif part[:char_escape]

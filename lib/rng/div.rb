@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   # Div element for documentation and grouping in RELAX NG schemas
   class Div < Lutaml::Model::Serializable
@@ -16,8 +14,10 @@ module Rng
     attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
-      root "div", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "div"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

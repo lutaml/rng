@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Param < Lutaml::Model::Serializable
     attribute :id, :string
@@ -11,8 +9,10 @@ module Rng
     attribute :value, :string
 
     xml do
-      root "param", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "param"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {
