@@ -1,0 +1,368 @@
+# frozen_string_literal: true
+
+require "set"
+require_relative "rnc_parser"
+require_relative "rnc_to_rng_converter"
+require_relative "grammar"
+require_relative "parse_tree_processor"
+
+module Rng
+  # Handles RNC file inclusion and grammar merging
+  #
+  # This class processes include directives in RNC files, resolving them
+  # recursively while preventing circular includes. It supports both:
+  # - Grammar-level includes (inside grammar blocks)
+  # - Top-level includes (Metanorma-style schemas)
+  #
+  # @example Parse a file with includes
+  #   processor = Rng::IncludeProcessor.new
+  #   grammar = processor.parse_file("schema.rnc")
+  #
+  class IncludeProcessor
+    # Initialize with optional converter
+    #
+    # @param converter [RncToRngConverter] Converter for parse tree to RNG XML
+    def initialize(converter = RncToRngConverter.new)
+      @converter = converter
+    end
+
+    # Parse a file with include resolution
+    #
+    # @param file_path [String] Path to RNC file
+    # @param base_dir [String, nil] Base directory for resolving relative paths
+    # @param visited_files [Set] Set of already visited file paths (for circular detection)
+    # @return [Grammar] Parsed grammar object
+    def parse_file(file_path, base_dir = nil, visited_files = Set.new)
+      tree = parse_file_to_tree(file_path, base_dir, visited_files)
+
+      # Extract namespace from wrapper level if present
+      namespace = tree[:namespace]
+
+      # Build grammar tree from different structures
+      grammar_tree = build_grammar_tree(tree)
+      grammar_tree[:namespace] = namespace if namespace
+
+      # Convert to RNG XML and then to Grammar object
+      rng_xml = @converter.convert(grammar_tree)
+      Grammar.from_xml(rng_xml)
+    end
+
+    private
+
+    # Parse file to parse tree (not Grammar object)
+    #
+    # @param file_path [String] Path to RNC file
+    # @param base_dir [String, nil] Base directory for resolving relative paths
+    # @param visited_files [Set] Set of already visited file paths
+    # @return [Hash] Parse tree
+    def parse_file_to_tree(file_path, base_dir = nil, visited_files = Set.new)
+      # Resolve absolute path to prevent circular includes
+      abs_path = File.expand_path(file_path, base_dir)
+
+      # Check for circular includes
+      raise "Circular include detected: #{abs_path}" if visited_files.include?(abs_path)
+
+      # Mark file as visited
+      visited_files.add(abs_path)
+
+      # Read file content
+      raise "Include file not found: #{abs_path}" unless File.exist?(abs_path)
+
+      content = File.read(abs_path)
+
+      # Parse with includes, passing the directory for relative path resolution
+      parse_with_includes(content, File.dirname(abs_path), visited_files)
+    end
+
+    # Parse RNC content and resolve includes
+    #
+    # @param content [String] RNC content
+    # @param base_dir [String, nil] Base directory for resolving relative paths
+    # @param visited_files [Set] Set of already visited file paths
+    # @return [Hash] Parse tree with includes resolved
+    def parse_with_includes(content, base_dir = nil, visited_files = Set.new)
+      parser = RncParser.new
+      tree = parser.parse(content.strip)
+
+      # Process includes in the tree
+      process_includes(tree, base_dir, visited_files)
+
+      tree
+    end
+
+    # Process include directives by recursively parsing included files
+    #
+    # @param tree [Hash] Parse tree
+    # @param base_dir [String] Base directory for resolving relative paths
+    # @param visited_files [Set] Set of already visited file paths
+    def process_includes(tree, base_dir, visited_files)
+      # Handle top-level includes first (Metanorma-style schemas)
+      if tree.key?(:top_includes)
+        process_top_level_includes(tree, base_dir, visited_files)
+        return
+      end
+
+      return if tree[:includes] && tree[:includes].empty?
+
+      # Handle grammar-level includes (existing logic)
+      grammar_tree = extract_grammar_tree(tree)
+
+      return unless grammar_tree[:includes] && !grammar_tree[:includes].empty?
+
+      # Process each include
+      grammar_tree[:includes].each do |include_item|
+        process_single_include(grammar_tree, include_item, base_dir,
+                               visited_files)
+      end
+
+      # Remove includes array after processing (no longer needed in conversion)
+      grammar_tree.delete(:includes)
+    end
+
+    # Process top-level includes (Metanorma-style schemas)
+    #
+    # @param tree [Hash] Parse tree
+    # @param base_dir [String] Base directory for resolving relative paths
+    # @param visited_files [Set] Set of already visited file paths
+    def process_top_level_includes(tree, base_dir, visited_files)
+      # Create a temporary grammar_tree to hold merged content
+      grammar_tree = {
+        start: nil,
+        definitions: [],
+      }
+
+      # Process each top-level include
+      tree[:top_includes].each do |include_item|
+        href = extract_string_literal(include_item[:href])
+        override = include_item[:override]
+
+        # Resolve file path relative to base_dir
+        included_file_path = base_dir ? File.join(base_dir, href) : href
+
+        # Parse included file recursively
+        included_tree = parse_file_to_tree(included_file_path, base_dir,
+                                           visited_files.dup)
+
+        # Extract grammar from included tree
+        included_grammar = extract_grammar_tree(included_tree)
+
+        # Recursively process includes in the included file
+        if included_grammar[:includes] && !included_grammar[:includes].empty?
+          process_includes(included_tree, File.dirname(included_file_path),
+                           visited_files.dup)
+
+          # Re-extract grammar after processing its includes
+          included_grammar = extract_grammar_tree(included_tree)
+        end
+
+        # Merge included definitions into temporary grammar_tree
+        merge_included_grammar(grammar_tree, included_grammar, override)
+      end
+
+      # Merge the resolved grammar_tree back into the main tree
+      tree[:start] = grammar_tree[:start] if grammar_tree[:start]
+      if grammar_tree[:definitions]
+        tree[:definitions] =
+          grammar_tree[:definitions]
+      end
+
+      # Clean up - remove top_includes key as it's been processed
+      tree.delete(:top_includes)
+    end
+
+    # Process a single include directive
+    #
+    # @param grammar_tree [Hash] Grammar tree to merge into
+    # @param include_item [Hash] Include item from parse tree
+    # @param base_dir [String] Base directory for resolving relative paths
+    # @param visited_files [Set] Set of already visited file paths
+    def process_single_include(grammar_tree, include_item, base_dir,
+visited_files)
+      href = extract_string_literal(include_item[:href])
+      override = include_item[:override]
+
+      # Resolve file path relative to base_dir
+      included_file_path = base_dir ? File.join(base_dir, href) : href
+
+      # Parse included file recursively
+      included_tree = parse_file_to_tree(included_file_path, base_dir,
+                                         visited_files.dup)
+
+      # Extract grammar from included tree
+      included_grammar = extract_grammar_tree(included_tree)
+
+      # Recursively process includes in the included file
+      if included_grammar[:includes] && !included_grammar[:includes].empty?
+        # Process includes in the included file
+        process_includes(included_tree, File.dirname(included_file_path),
+                         visited_files.dup)
+
+        # Re-extract grammar after processing its includes
+        included_grammar = extract_grammar_tree(included_tree)
+      end
+
+      # Merge included definitions into current tree
+      merge_included_grammar(grammar_tree, included_grammar, override)
+    end
+
+    # Extract grammar tree from parse tree
+    #
+    # @param tree [Hash] Parse tree
+    # @return [Hash] Grammar tree
+    def extract_grammar_tree(tree)
+      if tree.key?(:inner_grammar)
+        tree[:inner_grammar]
+      else
+        tree
+      end
+    end
+
+    # Build grammar tree from different tree structures
+    #
+    # Handles:
+    # - Top-level includes (Metanorma style)
+    # - Grammar block wrapper
+    # - Flat grammar
+    #
+    # @param tree [Hash] Parse tree
+    # @return [Hash] Normalized grammar tree
+    def build_grammar_tree(tree)
+      ParseTreeProcessor.new(tree).normalize.grammar_tree
+    end
+
+    # Merge included grammar into current grammar, applying overrides
+    #
+    # @param target_tree [Hash] Target grammar tree to merge into
+    # @param source_tree [Hash] Source grammar tree to merge from
+    # @param override [Hash, nil] Override definitions from include directive
+    def merge_included_grammar(target_tree, source_tree, override)
+      # Merge datatype library if not already set
+      if source_tree[:datatype_library] && !target_tree[:datatype_library]
+        target_tree[:datatype_library] =
+          source_tree[:datatype_library]
+      end
+
+      # Merge start pattern if not overridden
+      if source_tree[:start] && !override
+        # If target has no start, use source start
+        target_tree[:start] ||= source_tree[:start]
+      elsif override && override[:start]
+        # Use override start
+        target_tree[:start] = override[:start]
+      elsif source_tree[:start] && !target_tree[:start]
+        target_tree[:start] = source_tree[:start]
+      end
+
+      # Initialize definitions array if needed
+      target_tree[:definitions] ||= []
+
+      # Merge definitions from source
+      source_tree[:definitions]&.each do |source_def|
+        # Check if this definition is overridden
+        overridden = false
+
+        if override && override[:definitions]
+          override[:definitions].each do |override_def|
+            # Check if names match
+            next unless source_def[:name] && override_def[:name] &&
+              extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
+
+            # Use override instead of source
+            target_tree[:definitions] << override_def
+            overridden = true
+            break
+          end
+        end
+
+        # If not overridden, add source definition
+        target_tree[:definitions] << source_def unless overridden
+      end
+
+      # Add any override definitions not matched with source
+      return unless override && override[:definitions]
+
+      override[:definitions].each do |override_def|
+        # Check if this override matched any source definition
+        matched = false
+
+        source_tree[:definitions]&.each do |source_def|
+          next unless source_def[:name] && override_def[:name] &&
+            extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
+
+          matched = true
+          break
+        end
+
+        # If no match, this is a new definition - add it
+        target_tree[:definitions] << override_def unless matched
+      end
+    end
+
+    # Helper method to extract clean string without Parslet position markers
+    #
+    # @param obj [Object] Parslet::Slice or String
+    # @return [String] Clean string
+    def extract_string(obj)
+      RncParser.extract_string(obj)
+    end
+
+    # Helper method to extract string literal with concatenations
+    #
+    # @param lit [Hash] String literal with :string_parts and :concatenations
+    # @return [String] Extracted string
+    def extract_string_literal(lit)
+      return "" unless lit
+
+      # Extract main string parts
+      result = extract_string_parts(lit[:string_parts])
+
+      # Handle concatenations if present
+      if lit[:concatenations].is_a?(Array)
+        lit[:concatenations].each do |concat|
+          result += extract_string_parts(concat[:concat_string_parts])
+        end
+      end
+
+      result
+    end
+
+    # Extract string from string_parts array
+    #
+    # @param parts [Array, String] String parts
+    # @return [String] Extracted string
+    def extract_string_parts(parts)
+      return "" unless parts
+      return parts if parts.is_a?(String)
+      return parts.str if parts.respond_to?(:str)
+
+      return "" unless parts.is_a?(Array)
+
+      parts.map do |part|
+        if part.is_a?(String)
+          part
+        elsif part.respond_to?(:str)
+          part.str
+        elsif part[:hex_escape]
+          # Handle \x{HEX}
+          hex_str = part[:hex_escape][:hex]
+          hex_str = hex_str.str if hex_str.respond_to?(:str)
+          [hex_str.to_i(16)].pack("U")
+        elsif part[:char_escape]
+          # Handle \", \\, \n, \r, \t
+          char = part[:char_escape][:char]
+          char = char.str if char.respond_to?(:str)
+          case char
+          when '"' then '"'
+          when "\\" then "\\"
+          when "n" then "\n"
+          when "r" then "\r"
+          when "t" then "\t"
+          else char
+          end
+        else
+          part.to_s
+        end
+      end.join
+    end
+  end
+end

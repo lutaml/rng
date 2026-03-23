@@ -1,0 +1,5 @@
+include "base.rnc" {
+  start = element doc { text }
+}
+
+ExtendedPattern = element extended { text }

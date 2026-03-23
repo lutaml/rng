@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <!--
+    Currently we inherit from a namespaced grammar, isostandard. Until we inherit from isodoc,
+    we cannot have a new default namespace: we will end up with a grammar with two different
+    namespaces, one for isostandard and one for csand additions. And we do not want that.
+  -->
+  <include href="isodoc.rng">
+    <start>
+      <ref name="bipm-standard"/>
+    </start>
+    <define name="xref">
+      <element name="xref">
+        <attribute name="target">
+          <data type="string">
+            <param name="pattern">\i\c*|\c+#\c+</param>
+          </data>
+        </attribute>
+        <optional>
+          <attribute name="to">
+            <data type="string">
+              <param name="pattern">\i\c*|\c+#\c+</param>
+            </data>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="type">
+            <ref name="ReferenceFormat"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="alt"/>
+        </optional>
+        <optional>
+          <attribute name="case">
+            <choice>
+              <value>capital</value>
+              <value>lowercase</value>
+            </choice>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="droploc">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="pagenumber">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="nosee">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="nopage">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <ref name="XrefBody"/>
+      </element>
+    </define>
+    <define name="Clause-Section">
+      <optional>
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="language"/>
+      </optional>
+      <optional>
+        <attribute name="script"/>
+      </optional>
+      <optional>
+        <attribute name="inline-header">
+          <data type="boolean"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="obligation">
+          <choice>
+            <value>normative</value>
+            <value>informative</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="type"/>
+      </optional>
+      <optional>
+        <attribute name="unnumbered">
+          <data type="boolean"/>
+        </attribute>
+      </optional>
+      <optional>
+        <ref name="section-title"/>
+      </optional>
+      <group>
+        <choice>
+          <zeroOrMore>
+            <ref name="BasicBlock"/>
+          </zeroOrMore>
+          <ref name="amend"/>
+        </choice>
+        <zeroOrMore>
+          <choice>
+            <ref name="clause-subsection"/>
+            <ref name="terms"/>
+            <ref name="definitions"/>
+            <ref name="floating-title"/>
+          </choice>
+        </zeroOrMore>
+      </group>
+    </define>
+    <define name="Annex-Section">
+      <optional>
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="language"/>
+      </optional>
+      <optional>
+        <attribute name="script"/>
+      </optional>
+      <optional>
+        <attribute name="inline-header">
+          <data type="boolean"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="obligation">
+          <choice>
+            <value>normative</value>
+            <value>informative</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="unnumbered">
+          <data type="boolean"/>
+        </attribute>
+      </optional>
+      <optional>
+        <ref name="section-title"/>
+      </optional>
+      <group>
+        <zeroOrMore>
+          <ref name="BasicBlock"/>
+        </zeroOrMore>
+        <zeroOrMore>
+          <choice>
+            <ref name="annex-subsection"/>
+            <ref name="terms"/>
+            <ref name="definitions"/>
+            <ref name="references"/>
+            <ref name="floating-title"/>
+          </choice>
+        </zeroOrMore>
+      </group>
+    </define>
+    <define name="ol">
+      <element name="ol">
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+        <optional>
+          <attribute name="keep-with-next">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="keep-lines-together">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="tag"/>
+        </optional>
+        <optional>
+          <attribute name="multilingual-rendering">
+            <ref name="MultilingualRenderingType"/>
+          </attribute>
+        </optional>
+        <attribute name="type">
+          <choice>
+            <value>roman</value>
+            <value>alphabet</value>
+            <value>arabic</value>
+            <value>roman_upper</value>
+            <value>alphabet_upper</value>
+          </choice>
+        </attribute>
+        <optional>
+          <attribute name="start"/>
+        </optional>
+        <oneOrMore>
+          <ref name="li"/>
+        </oneOrMore>
+        <zeroOrMore>
+          <ref name="note"/>
+        </zeroOrMore>
+      </element>
+    </define>
+    <define name="DocumentType">
+      <choice>
+        <value>brochure</value>
+        <value>mise-en-pratique</value>
+        <value>rapport</value>
+        <value>monographie</value>
+        <value>guide</value>
+        <value>meeting-report</value>
+        <value>technical-report</value>
+        <value>working-party-note</value>
+        <value>strategy</value>
+        <value>cipm-mra</value>
+        <value>resolution</value>
+      </choice>
+    </define>
+    <define name="editorialgroup">
+      <element name="editorialgroup">
+        <oneOrMore>
+          <ref name="committee"/>
+        </oneOrMore>
+        <zeroOrMore>
+          <ref name="workgroup"/>
+        </zeroOrMore>
+      </element>
+    </define>
+    <define name="structuredidentifier">
+      <element name="structuredidentifier">
+        <element name="docnumber">
+          <text/>
+        </element>
+        <optional>
+          <element name="part">
+            <text/>
+          </element>
+        </optional>
+        <optional>
+          <element name="appendix">
+            <text/>
+          </element>
+        </optional>
+      </element>
+    </define>
+    <define name="BibDataExtensionType">
+      <optional>
+        <ref name="doctype"/>
+      </optional>
+      <optional>
+        <ref name="docsubtype"/>
+      </optional>
+      <ref name="editorialgroup"/>
+      <optional>
+        <ref name="comment-period"/>
+      </optional>
+      <optional>
+        <ref name="si-aspect"/>
+      </optional>
+      <optional>
+        <ref name="meeting-note"/>
+      </optional>
+      <ref name="structuredidentifier"/>
+    </define>
+  </include>
+  <define name="comment-period">
+    <element name="comment-period">
+      <element name="from">
+        <ref name="ISO8601Date"/>
+      </element>
+      <element name="to">
+        <ref name="ISO8601Date"/>
+      </element>
+    </element>
+  </define>
+  <define name="si-aspect">
+    <element name="si-aspect">
+      <choice>
+        <value>A_e_deltanu</value>
+        <value>A_e</value>
+        <value>cd_Kcd_h_deltanu</value>
+        <value>cd_Kcd</value>
+        <value>full</value>
+        <value>K_k_deltanu</value>
+        <value>K_k</value>
+        <value>kg_h_c_deltanu</value>
+        <value>kg_h</value>
+        <value>m_c_deltanu</value>
+        <value>m_c</value>
+        <value>mol_NA</value>
+        <value>s_deltanu</value>
+      </choice>
+    </element>
+  </define>
+  <define name="committee">
+    <element name="committee">
+      <attribute name="acronym">
+        <choice>
+          <value>CGPM</value>
+          <value>CIPM</value>
+          <value>BIPM</value>
+          <value>CCAUV</value>
+          <value>CCEM</value>
+          <value>CCL</value>
+          <value>CCM</value>
+          <value>CCPR</value>
+          <value>CCQM</value>
+          <value>CCRI</value>
+          <value>CCT</value>
+          <value>CCTF</value>
+          <value>CCU</value>
+          <value>CCL-CCTF-WGFS</value>
+          <value>JCGM</value>
+          <value>JCRB</value>
+          <value>JCTLM</value>
+          <value>INetQI</value>
+        </choice>
+      </attribute>
+      <ref name="LocalizedString"/>
+    </element>
+  </define>
+  <define name="workgroup">
+    <element name="workgroup">
+      <optional>
+        <attribute name="acronym"/>
+      </optional>
+      <text/>
+    </element>
+  </define>
+  <define name="meeting-note">
+    <element name="meeting-note">
+      <text/>
+    </element>
+  </define>
+  <define name="bipm-standard">
+    <element name="bipm-standard">
+      <attribute name="version"/>
+      <attribute name="type">
+        <choice>
+          <value>semantic</value>
+          <value>presentation</value>
+        </choice>
+      </attribute>
+      <ref name="bibdata"/>
+      <zeroOrMore>
+        <ref name="termdocsource"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="misccontainer"/>
+      </optional>
+      <optional>
+        <ref name="boilerplate"/>
+      </optional>
+      <optional>
+        <ref name="preface"/>
+      </optional>
+      <oneOrMore>
+        <ref name="sections"/>
+      </oneOrMore>
+      <zeroOrMore>
+        <ref name="annex"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="bibliography"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="indexsect"/>
+      </zeroOrMore>
+    </element>
+  </define>
+</grammar>

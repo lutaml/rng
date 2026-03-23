@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <!-- default namespace isostandard = "https://www.metanorma.com/ns/iso" -->
+  <include href="isostandard.rng">
+    <start>
+      <ref name="iso-standard"/>
+    </start>
+    <define name="sections">
+      <element name="sections">
+        <oneOrMore>
+          <ref name="clause"/>
+        </oneOrMore>
+      </element>
+    </define>
+    <define name="clause">
+      <element name="clause">
+        <optional>
+          <attribute name="change">
+            <choice>
+              <value>add</value>
+              <value>delete</value>
+              <value>modify</value>
+            </choice>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="locality"/>
+        </optional>
+        <ref name="Clause-Section"/>
+      </element>
+    </define>
+    <define name="iso-standard">
+      <element name="iso-standard">
+        <attribute name="version"/>
+        <attribute name="type">
+          <choice>
+            <value>semantic</value>
+            <value>presentation</value>
+          </choice>
+        </attribute>
+        <ref name="bibdata"/>
+        <optional>
+          <ref name="misccontainer"/>
+        </optional>
+        <optional>
+          <ref name="boilerplate"/>
+        </optional>
+        <ref name="preface"/>
+        <oneOrMore>
+          <ref name="sections"/>
+        </oneOrMore>
+      </element>
+    </define>
+    <define name="documentnumber">
+      <element name="project-number">
+        <optional>
+          <attribute name="part">
+            <data type="int"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="subpart">
+            <data type="int"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="amendment">
+            <data type="int"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="corrigendum">
+            <data type="int"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="origyr">
+            <ref name="ISO8601Date"/>
+          </attribute>
+        </optional>
+        <text/>
+      </element>
+    </define>
+    <define name="BibDataExtensionType">
+      <ref name="doctype"/>
+      <optional>
+        <ref name="docsubtype"/>
+      </optional>
+      <ref name="editorialgroup"/>
+      <zeroOrMore>
+        <ref name="ics"/>
+      </zeroOrMore>
+      <ref name="structuredidentifier"/>
+      <optional>
+        <ref name="stagename"/>
+      </optional>
+      <optional>
+        <ref name="updates_document_type"/>
+      </optional>
+    </define>
+  </include>
+  <!-- end overrides -->
+  <define name="updates_document_type">
+    <element name="updates-document-type">
+      <ref name="DocumentType"/>
+    </element>
+  </define>
+</grammar>

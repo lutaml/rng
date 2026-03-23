@@ -10,7 +10,7 @@ module Rng
     attribute :datatypeLibrary, :string
     attribute :start, Start, collection: true
     attribute :define, Define, collection: true, initialize_empty: true
-    attribute :element, Element, collection: true
+    attribute :element, Element, collection: true, initialize_empty: true
     attribute :include, Include, collection: true
 
     xml do
@@ -19,11 +19,11 @@ module Rng
 
       map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "id", to: :id
 

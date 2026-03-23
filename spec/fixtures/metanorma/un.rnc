@@ -1,0 +1,103 @@
+# Currently we inherit from a namespaced grammar, isostandard. Until we inherit from isodoc,
+# we cannot have a new default namespace: we will end up with a grammar with two different
+# namespaces, one for isostandard and one for csand additions. And we do not want that.
+
+include "isodoc.rnc" {
+
+  start = un-standard
+
+  TextElement =
+    text | em | eref | strong | stem | sub | sup | tt |
+    strike | smallcap | xref | br | hyperlink | hr | pagebreak | bookmark 
+
+    admonition =
+    element admonition {
+      attribute id { xsd:ID },
+      attribute unnumbered { xsd:boolean }?,
+      attribute type {
+        ( "danger" | "caution" | "warning" | "important" | "safety precautions" )},
+      tname?,
+      (  paragraph-with-footnote | table | formula | ol | ul | dl | figure | quote | sourcecode | example | review )+,
+      note*
+    }
+
+
+  DocumentType = "recommendation" | "plenary" | "addendum" | "communication" | "corrigendum" |
+    "reissue" | "agenda" | "budgetary" | "sec-gen-notes" | "expert-report" | "resolution"
+
+    editorialgroup = element editorialgroup {
+      committee+
+    }
+
+  sections =
+    element sections { (clause | floating-title)+  }
+
+  BibDataExtensionType =
+    doctype?, docsubtype?, submissionlanguage*, editorialgroup?, ics*, distribution?, session?, job_number?
+
+                preface =
+                element preface {
+                  abstract?, foreword?, introduction?
+                }
+
+  abstract = element abstract { Basic-Section }
+
+Clause-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute unnumbered { xsd:boolean }?,
+    section-title?,
+    (
+      ( BasicBlock* ),
+       (clause-subsection | terms | definitions | floating-title )*
+    )
+
+Annex-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute unnumbered { xsd:boolean }?,
+    section-title?,
+    (
+      ( BasicBlock* ),
+       (annex-subsection | terms | definitions | references | floating-title )*
+    )
+
+
+}
+
+session = element session {
+  session-number?, session-date?, item-number*, item-name*, subitem-name*, collaborator?, agenda-id?, item-footnote?
+}
+
+committee = element committee { 
+  text
+}
+
+session-number = element number { text }
+session-date = element session-date { xsd:date }
+item-number = element item-number { text }
+collaborator = element collaborator { text }
+agenda-id = element agenda-id { text }
+item-name = element item-name { text }
+subitem-name = element subitem-name { text }
+item-footnote = element item-footnote { text }
+
+submissionlanguage = element submissionlanguage { text }
+
+distribution = element distribution { "general" | "limited" | "restricted" | "provisional" }
+
+job_number = element job_number { text }
+
+un-standard =
+element un-standard {
+attribute version { text },
+  attribute type { "semantic" | "presentation" },
+  bibdata, misccontainer?, boilerplate?, preface, sections+, annex*, indexsect*
+}
+

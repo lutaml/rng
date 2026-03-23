@@ -1,0 +1,166 @@
+#default namespace isostandard = "https://www.metanorma.com/ns/iso"
+
+include "isodoc.rnc" {
+
+start = iso-standard
+
+organization = 
+  element organization {
+    orgname+, abbreviation?, uri?, org-identifier*, contact*,
+    technical-committee?, subcommittee?, workgroup?, secretariat?  
+}
+
+BibDataExtensionType =
+        doctype, docsubtype?, horizontal?, editorialgroup, ics*, structuredidentifier, stagename?
+
+bdate = element date {
+  attribute type { ( BibliographicDateType | text ) },
+  (
+(
+element from { ISO8601Date },
+element to { ISO8601Date }?
+) |
+element on { ISO8601Date | "--" | "–" }
+)
+
+}
+
+sections =
+  element sections {
+    (note | admonition)*, clause, (term-clause | terms)?, definitions?, (clause | term-clause | terms)+
+  }
+
+Clause-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute type { text }?,
+    section-title?,
+    (
+      ( ( BasicBlock+ ) | amend) | clause-subsection+
+    )
+
+term = 
+  element term { 
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    preferred, admitted*, deprecates*,
+    termdomain?, termdefinition, termnote*, termexample*, termsource*,
+    term*
+  }
+
+annex =
+  element annex { 
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    # allow hanging paragraps in annexes: they introduce lists
+    #( paragraph-with-footnote | table | note | formula | admonition | ol | ul | dl | figure | quote | sourcecode | review | example )*,
+    BasicBlock*, 
+    clause-hanging-paragraph-with-footnote*,
+    annex-appendix*
+  }
+
+AdmonitionType =
+ ( "danger" | "caution" | "warning" | "important" | "safety precautions" )
+
+preface =
+  element preface {
+    abstract?, foreword, introduction?
+}
+
+DocumentType =
+     "international-standard" | "technical-specification" |
+     "technical-report" | "publicly-available-specification" |
+    "international-workshop-agreement" | "guide" |
+    "amendment" | "technical-corrigendum" | "directive"
+
+DocumentSubtype = "specification" | "method-of-test" | "vocabulary" | "code-of-practice"
+
+structuredidentifier =
+  element structuredidentifier {
+    attribute type { text }?,
+    (documentnumber, tc-documentnumber? )
+}
+
+foreword = element foreword { Basic-Section }
+introduction = element introduction { Content-Section }
+
+editorialgroup = element editorialgroup {
+  technical-committee+, subcommittee*, workgroup*, secretariat?
+}
+
+Content-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute number { text }?,
+    attribute type { text }?,
+    section-title?,
+    ( (BasicBlock*) |
+      content-subsection+ )
+
+}
+
+# end overrides
+
+# We display the Normative References between scope and terms; but to keep the
+# grammar simple, we keep the references together
+iso-standard = 
+  element iso-standard {
+attribute version { text },
+  attribute type { "semantic" | "presentation" },
+    bibdata, termdocsource*, misccontainer?, boilerplate?, preface, sections+, annex*, bibliography, indexsect*
+  }
+
+horizontal = element horizontal { xsd:boolean }
+
+documentnumber = 
+  element project-number { 
+    attribute part { xsd:int }?,
+    attribute subpart { xsd:int }?,
+    text
+   }
+
+tc-documentnumber = 
+  element tc-document-number { 
+    xsd:int 
+   }
+
+subcommittee =
+  element subcommittee { IsoWorkgroup }
+
+workgroup =
+  element workgroup { IsoWorkgroup }
+
+secretariat =
+  element secretariat { text }
+
+clause-hanging-paragraph-with-footnote =
+  element clause {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute  inline-header  {   xsd:boolean  } ? ,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    # allow hanging paragraphs in annexes: they introduce lists
+    BasicBlock*,
+    clause-hanging-paragraph-with-footnote*
+  }
+
+annex-appendix =
+  element appendix { Clause-Section }
+
+stagename = element stagename { text }
+

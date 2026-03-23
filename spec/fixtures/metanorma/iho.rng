@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <!--
+    Currently we inherit from a namespaced grammar, isostandard. Until we inherit from isodoc,
+    we cannot have a new default namespace: we will end up with a grammar with two different
+    namespaces, one for isostandard and one for csand additions. And we do not want that.
+  -->
+  <include href="isodoc.rng">
+    <start>
+      <ref name="iho-standard"/>
+    </start>
+    <define name="DocumentType">
+      <choice>
+        <value>policy-and-procedures</value>
+        <value>best-practices</value>
+        <value>supporting-document</value>
+        <value>report</value>
+        <value>legal</value>
+        <value>directives</value>
+        <value>proposal</value>
+        <value>standard</value>
+      </choice>
+    </define>
+    <define name="editorialgroup">
+      <element name="editorialgroup">
+        <oneOrMore>
+          <choice>
+            <ref name="committee"/>
+            <ref name="workgroup"/>
+            <ref name="commission"/>
+          </choice>
+        </oneOrMore>
+      </element>
+    </define>
+    <define name="BibDataExtensionType">
+      <optional>
+        <ref name="doctype"/>
+      </optional>
+      <optional>
+        <ref name="docsubtype"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="editorialgroup"/>
+      </zeroOrMore>
+      <zeroOrMore>
+        <ref name="ics"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="commentperiod"/>
+      </optional>
+    </define>
+    <define name="annex">
+      <element name="annex">
+        <optional>
+          <attribute name="id">
+            <data type="ID"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="language"/>
+        </optional>
+        <optional>
+          <attribute name="script"/>
+        </optional>
+        <optional>
+          <attribute name="inline-header">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <attribute name="obligation">
+          <choice>
+            <value>normative</value>
+            <value>informative</value>
+          </choice>
+        </attribute>
+        <optional>
+          <ref name="section-title"/>
+        </optional>
+        <group>
+          <zeroOrMore>
+            <ref name="BasicBlock"/>
+          </zeroOrMore>
+          <zeroOrMore>
+            <choice>
+              <ref name="annex-subsection"/>
+              <ref name="terms"/>
+              <ref name="definitions"/>
+              <ref name="references"/>
+            </choice>
+          </zeroOrMore>
+        </group>
+        <zeroOrMore>
+          <ref name="annex-appendix"/>
+        </zeroOrMore>
+      </element>
+    </define>
+  </include>
+  <define name="committee">
+    <element name="committee">
+      <ref name="IHO_Group"/>
+    </element>
+  </define>
+  <define name="workgroup">
+    <element name="workgroup">
+      <ref name="IHO_Group"/>
+    </element>
+  </define>
+  <define name="commission">
+    <element name="commission">
+      <ref name="IHO_Group"/>
+    </element>
+  </define>
+  <define name="IHO_Group">
+    <optional>
+      <element name="name">
+        <text/>
+      </element>
+    </optional>
+    <element name="abbreviation">
+      <text/>
+    </element>
+    <optional>
+      <choice>
+        <ref name="committee"/>
+        <ref name="workgroup"/>
+        <ref name="commission"/>
+      </choice>
+    </optional>
+  </define>
+  <define name="annex-appendix">
+    <element name="appendix">
+      <ref name="Clause-Section"/>
+    </element>
+  </define>
+  <define name="commentperiod">
+    <element name="commentperiod">
+      <element name="from">
+        <ref name="ISO8601Date"/>
+      </element>
+      <optional>
+        <element name="to">
+          <ref name="ISO8601Date"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="iho-standard">
+    <element name="iho-standard">
+      <attribute name="version"/>
+      <attribute name="type">
+        <choice>
+          <value>semantic</value>
+          <value>presentation</value>
+        </choice>
+      </attribute>
+      <ref name="bibdata"/>
+      <zeroOrMore>
+        <ref name="termdocsource"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="misccontainer"/>
+      </optional>
+      <optional>
+        <ref name="boilerplate"/>
+      </optional>
+      <ref name="preface"/>
+      <oneOrMore>
+        <ref name="sections"/>
+      </oneOrMore>
+      <zeroOrMore>
+        <ref name="annex"/>
+      </zeroOrMore>
+      <ref name="bibliography"/>
+      <zeroOrMore>
+        <ref name="indexsect"/>
+      </zeroOrMore>
+    </element>
+  </define>
+</grammar>

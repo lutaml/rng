@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <!--
+    Currently we inherit from a namespaced grammar, isostandard. Until we inherit from isodoc,
+    we cannot have a new default namespace: we will end up with a grammar with two different
+    namespaces, one for isostandard and one for csand additions. And we do not want that.
+  -->
+  <include href="isodoc.rng">
+    <start>
+      <ref name="nist-standard"/>
+    </start>
+    <define name="ol">
+      <element name="ol">
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+        <optional>
+          <attribute name="class">
+            <value>steps</value>
+          </attribute>
+        </optional>
+        <oneOrMore>
+          <ref name="li"/>
+        </oneOrMore>
+        <zeroOrMore>
+          <ref name="note"/>
+        </zeroOrMore>
+      </element>
+    </define>
+    <define name="DocumentType">
+      <value>standard</value>
+    </define>
+    <!-- TitleType = ( "alternative" | "original" | "unofficial" | "subtitle" | "main" ) -->
+    <define name="preface">
+      <element name="preface">
+        <optional>
+          <ref name="abstract"/>
+        </optional>
+        <optional>
+          <ref name="foreword"/>
+        </optional>
+        <zeroOrMore>
+          <choice>
+            <ref name="clause"/>
+            <ref name="errata_clause"/>
+            <ref name="acknowledgements"/>
+          </choice>
+        </zeroOrMore>
+        <optional>
+          <ref name="reviewernote"/>
+        </optional>
+        <optional>
+          <ref name="executivesummary"/>
+        </optional>
+      </element>
+    </define>
+    <define name="editorialgroup">
+      <element name="editorialgroup">
+        <oneOrMore>
+          <ref name="committee"/>
+        </oneOrMore>
+      </element>
+    </define>
+    <define name="BibDataExtensionType">
+      <optional>
+        <ref name="doctype"/>
+      </optional>
+      <optional>
+        <ref name="docsubtype"/>
+      </optional>
+      <optional>
+        <ref name="editorialgroup"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="ics"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="commentperiod"/>
+      </optional>
+    </define>
+  </include>
+  <define name="DocRelationType" combine="choice">
+    <choice>
+      <value>obsoletedBy</value>
+      <value>supersedes</value>
+      <value>supersededBy</value>
+    </choice>
+  </define>
+  <define name="BibliographicDateType" combine="choice">
+    <choice>
+      <value>abandoned</value>
+      <value>superseded</value>
+    </choice>
+  </define>
+  <define name="commentperiod">
+    <element name="commentperiod">
+      <element name="from">
+        <ref name="ISO8601Date"/>
+      </element>
+      <optional>
+        <element name="to">
+          <ref name="ISO8601Date"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="extended">
+          <ref name="ISO8601Date"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="reviewernote">
+    <element name="reviewernote">
+      <ref name="Basic-Section"/>
+    </element>
+  </define>
+  <define name="executivesummary">
+    <element name="executivesummary">
+      <ref name="Basic-Section"/>
+    </element>
+  </define>
+  <define name="committee">
+    <element name="committee">
+      <text/>
+    </element>
+  </define>
+  <define name="errata">
+    <element name="errata">
+      <oneOrMore>
+        <ref name="erratarow"/>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="erratarow">
+    <element name="row">
+      <element name="date">
+        <ref name="ISO8601Date"/>
+      </element>
+      <element name="type">
+        <text/>
+      </element>
+      <element name="change">
+        <oneOrMore>
+          <ref name="TextElement"/>
+        </oneOrMore>
+      </element>
+      <element name="pages">
+        <text/>
+      </element>
+    </element>
+  </define>
+  <define name="errata_clause">
+    <element name="clause">
+      <optional>
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="language"/>
+      </optional>
+      <optional>
+        <attribute name="script"/>
+      </optional>
+      <optional>
+        <attribute name="obligation">
+          <choice>
+            <value>normative</value>
+            <value>informative</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <ref name="section-title"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="BasicBlock"/>
+      </zeroOrMore>
+      <ref name="errata"/>
+    </element>
+  </define>
+  <define name="nist-standard">
+    <element name="nist-standard">
+      <attribute name="version"/>
+      <attribute name="type">
+        <choice>
+          <value>semantic</value>
+          <value>presentation</value>
+        </choice>
+      </attribute>
+      <ref name="bibdata"/>
+      <zeroOrMore>
+        <ref name="termdocsource"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="misccontainer"/>
+      </optional>
+      <optional>
+        <ref name="boilerplate"/>
+      </optional>
+      <ref name="preface"/>
+      <oneOrMore>
+        <ref name="sections"/>
+      </oneOrMore>
+      <zeroOrMore>
+        <ref name="annex"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="bibliography"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="indexsect"/>
+      </zeroOrMore>
+    </element>
+  </define>
+</grammar>

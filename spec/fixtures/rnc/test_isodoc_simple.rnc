@@ -1,0 +1,9 @@
+# comment
+grammar {
+
+start = element root { text }
+
+}
+
+# trailing
+external_def = element external { text }

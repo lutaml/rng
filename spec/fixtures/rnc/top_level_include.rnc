@@ -1,0 +1,8 @@
+include "base.rnc" {
+  start = MainElement
+}
+
+# Additional definitions after include
+DocumentType = "A" | "B"
+
+extra-element = element extra { text }

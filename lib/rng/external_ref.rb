@@ -16,11 +16,11 @@ module Rng
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "href", to: :href
     end
