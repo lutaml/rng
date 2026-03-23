@@ -1,13 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "element"
-require_relative "value"
-require_relative "define"
-require_relative "one_or_more"
-require_relative "zero_or_more"
-require_relative "optional"
-require_relative "name"
-
 module Rng
   # RncBuilder converts RNG Grammar objects to RNC (RELAX NG Compact Syntax) text format.
   #

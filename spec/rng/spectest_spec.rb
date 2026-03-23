@@ -103,7 +103,7 @@ def process_test_suite(suite_element, context_description = "")
             regenerated = schema.to_xml
 
             # Verify the regenerated XML matches the original
-            expect(regenerated).to be_equivalent_to_xml(schema_xml)
+            expect(regenerated).to be_xml_equivalent_to(schema_xml)
           end
         end
 

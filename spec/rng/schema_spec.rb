@@ -34,7 +34,7 @@ RSpec.describe Rng::Grammar do
     it "correctly round-trips address_book.rng (analogous comparison)" do
       parsed = described_class.from_xml(address_book_rng)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_analogous_with(address_book_rng)
+      expect(regenerated).to be_xml_equivalent_with(address_book_rng)
     end
 
     it "correctly round-trips address_book.rng (formatted equivalent comparison)" do
@@ -46,7 +46,7 @@ RSpec.describe Rng::Grammar do
     it "correctly round-trips relaxng.rng (analogous comparison)" do
       parsed = described_class.from_xml(relaxng_schema)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_analogous_with(relaxng_schema)
+      expect(regenerated).to be_xml_equivalent_with(relaxng_schema)
     end
 
     it "correctly round-trips relaxng.rng (formatted equivalent comparison)" do
@@ -58,7 +58,7 @@ RSpec.describe Rng::Grammar do
     it "correctly round-trips testSuite.rng (analogous comparison)" do
       parsed = described_class.from_xml(test_suite_rng)
       regenerated = parsed.to_xml
-      expect(regenerated).to be_analogous_with(test_suite_rng)
+      expect(regenerated).to be_xml_equivalent_with(test_suite_rng)
     end
 
     it "correctly round-trips testSuite.rng (formatted equivalent comparison)" do

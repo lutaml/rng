@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class ExternalRef < Lutaml::Model::Serializable
     attribute :id, :string
@@ -11,7 +9,7 @@ module Rng
 
     xml do
       root "externalRef"
-      namespace "http://relaxng.org/ns/structure/1.0"
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

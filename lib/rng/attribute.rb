@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Attribute < Lutaml::Model::Serializable
     attribute :name, Name
@@ -26,13 +24,15 @@ module Rng
     attribute :list, List
     attribute :notAllowed, NotAllowed
     attribute :attribute, Attribute
-    attribute :documentation, :string
+    attribute :documentation, Documentation
     attribute :foreign_attributes, ForeignAttribute, collection: true
     attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
-      root "attribute", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "attribute"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_element "name", to: :name
       map_attribute "name", to: :attr_name
@@ -65,9 +65,7 @@ module Rng
       map_element "notAllowed", to: :notAllowed
       map_element "attribute", to: :attribute
       map_element "nsName", to: :ns_name
-      map_element "documentation", to: :documentation,
-                                   namespace: "http://relaxng.org/ns/compatibility/annotations/1.0",
-                                   prefix: "a"
+      map_element "documentation", to: :documentation
     end
   end
 end

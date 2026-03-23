@@ -58,10 +58,6 @@ module Rng
     def extract_preamble_section
       return nil unless @tree[:preamble_items]
 
-      require_relative "schema_preamble"
-      require_relative "namespace_declaration"
-      require_relative "datatype_declaration"
-
       preamble = SchemaPreamble.new
 
       items = @tree[:preamble_items]
@@ -526,8 +522,6 @@ module Rng
     # @param text [String] Override block content
     # @return [Hash] Parsed structure with :start and :patterns
     def parse_override_with_scope(text)
-      require_relative "rnc_parser"
-
       # Create temporary parser with override-specific root
       parser = Rng::RncParser.new
 
@@ -554,8 +548,6 @@ module Rng
     # @param text [String] Grammar block content
     # @return [Hash] Parsed structure
     def parse_grammar_with_scope(text)
-      require_relative "rnc_parser"
-
       parser = Rng::RncParser.new
 
       # Parse using grammar rule
@@ -597,8 +589,6 @@ module Rng
     # @param text [String] Patterns content
     # @return [Array] Parsed patterns
     def parse_patterns_with_scope(text)
-      require_relative "rnc_parser"
-
       parser = Rng::RncParser.new
 
       # Create a custom rule for patterns only

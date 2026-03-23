@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Define < Lutaml::Model::Serializable
     attribute :name, :string
@@ -26,12 +24,14 @@ module Rng
     attribute :notAllowed, NotAllowed
     attribute :attribute, Attribute
     attribute :grammar, Grammar
-    attribute :documentation, :string
+    attribute :documentation, Documentation
     attribute :foreign_attributes, ForeignAttribute, collection: true
     attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
-      root "define", ordered: true
+      element "define"
+      ordered
+
       map_attribute "name", to: :name
       map_attribute "combine", to: :combine
       map_attribute "id", to: :id
@@ -61,9 +61,7 @@ module Rng
       map_element "notAllowed", to: :notAllowed
       map_element "attribute", to: :attribute
       map_element "grammar", to: :grammar
-      map_element "documentation", to: :documentation,
-                                   namespace: "http://relaxng.org/ns/compatibility/annotations/1.0",
-                                   prefix: "a"
+      map_element "documentation", to: :documentation
     end
   end
 end

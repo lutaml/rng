@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Element < Lutaml::Model::Serializable
     attribute :attr_name, :string
@@ -30,13 +28,15 @@ module Rng
     attribute :grammar, Grammar
     attribute :parent_ref, ParentRef
     attribute :external_ref, ExternalRef
-    attribute :documentation, :string
+    attribute :documentation, Documentation
     attribute :foreign_attributes, ForeignAttribute, collection: true
     attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
-      root "element", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "element"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "name", to: :attr_name
       map_attribute "ns", to: :ns, value_map: {
@@ -71,9 +71,7 @@ module Rng
       map_element "grammar", to: :grammar
       map_element "parentRef", to: :parent_ref
       map_element "externalRef", to: :external_ref
-      map_element "documentation", to: :documentation,
-                                   namespace: "http://relaxng.org/ns/compatibility/annotations/1.0",
-                                   prefix: "a"
+      map_element "documentation", to: :documentation
     end
   end
 end

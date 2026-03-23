@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class Ref < Lutaml::Model::Serializable
     attribute :id, :string
@@ -10,8 +8,10 @@ module Rng
     attribute :name, :string
 
     xml do
-      root "ref", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "ref"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

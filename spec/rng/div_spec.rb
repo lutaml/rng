@@ -64,7 +64,7 @@ RSpec.describe Rng::Div do
       parsed = Rng::Grammar.from_xml(rng_with_div)
       regenerated = parsed.to_xml
 
-      expect(regenerated).to be_analogous_with(rng_with_div)
+      expect(regenerated).to be_xml_equivalent_with(rng_with_div)
     end
 
     it "generates RNC with div blocks" do
@@ -128,7 +128,7 @@ RSpec.describe Rng::Div do
       parsed = Rng::Grammar.from_xml(rng_with_nested_div)
       regenerated = parsed.to_xml
 
-      expect(regenerated).to be_analogous_with(rng_with_nested_div)
+      expect(regenerated).to be_xml_equivalent_with(rng_with_nested_div)
     end
   end
 
@@ -201,7 +201,7 @@ RSpec.describe Rng::Div do
       parsed = Rng::Grammar.from_xml(rng_with_div_attrs)
       regenerated = parsed.to_xml
 
-      expect(regenerated).to be_analogous_with(rng_with_div_attrs)
+      expect(regenerated).to be_xml_equivalent_with(rng_with_div_attrs)
     end
   end
 end

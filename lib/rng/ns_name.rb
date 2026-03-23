@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "lutaml/model"
-
 module Rng
   class NsName < Lutaml::Model::Serializable
     attribute :id, :string
@@ -11,8 +9,10 @@ module Rng
     attribute :except, Except
 
     xml do
-      root "nsName", ordered: true
-      namespace "http://relaxng.org/ns/structure/1.0"
+      element "nsName"
+      ordered
+
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {

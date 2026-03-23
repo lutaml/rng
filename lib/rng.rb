@@ -1,19 +1,11 @@
 # frozen_string_literal: true
 
-require_relative "rng/version"
-
-require_relative "rng/not_allowed"
-
 require "lutaml/model"
-require "lutaml/model/xml/nokogiri_adapter"
-
-# Auto-configure Nokogiri adapter for XML parsing
-Lutaml::Model::Config.configure do |config|
-  config.xml_adapter = Lutaml::Model::Xml::NokogiriAdapter
-end
 
 module Rng
   class Error < StandardError; end
+
+  autoload :Namespaces, File.expand_path("rng/namespaces", __dir__)
 
   # Autoload all model classes - avoids circular dependency issues
   autoload :Pattern, File.expand_path("rng/pattern", __dir__)
@@ -52,9 +44,7 @@ module Rng
   autoload :RncParser, File.expand_path("rng/rnc_parser", __dir__)
   autoload :ParseRnc, File.expand_path("rng/parse_rnc", __dir__)
   autoload :ToRnc, File.expand_path("rng/to_rnc", __dir__)
-end
 
-module Rng
   module_function
 
   def parse(rng, location: nil, nested_schema: false)

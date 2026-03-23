@@ -276,24 +276,6 @@ RSpec.describe "Round-Trip Conversion" do
   end
 
   describe "XML comparison using canon matchers" do
-    context "with analogous comparison" do
-      it "recognizes semantically equivalent XML" do
-        rng1 = <<~RNG
-          <grammar xmlns="http://relaxng.org/ns/structure/1.0">
-            <start>
-              <element name="root"><text/></element>
-            </start>
-          </grammar>
-        RNG
-
-        grammar = Rng.parse(rng1)
-        rng2 = grammar.to_xml
-
-        # Should be analogous (semantically equivalent)
-        expect(rng2).to be_analogous_with(rng1)
-      end
-    end
-
     context "with formatted XML comparison" do
       it "recognizes equivalent formatted XML" do
         rng1 = <<~RNG

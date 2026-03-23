@@ -2,19 +2,7 @@
 
 require "parslet"
 require "nokogiri"
-require "lutaml/model"
-require "lutaml/model/xml/nokogiri_adapter"
 require "set"
-require_relative "grammar"
-require_relative "rnc_builder"
-require_relative "rnc_to_rng_converter"
-require_relative "include_processor"
-require_relative "parse_tree_processor"
-
-# Configure Nokogiri adapter for XML parsing
-Lutaml::Model::Config.configure do |config|
-  config.xml_adapter = Lutaml::Model::Xml::NokogiriAdapter
-end
 
 module Rng
   class RncParser < Parslet::Parser
@@ -34,11 +22,11 @@ module Rng
     # Regular comment: single #
     rule(:comment) { str("#") >> str("#").absent? >> match('[^\n]').repeat >> (str("\n") | any.absent?) }
     rule(:comment?) { comment.maybe }
-    
+
     # Documentation comment: ##
     rule(:doc_comment) { str("##") >> match('[^\n]').repeat.as(:doc_line) >> (str("\n") | any.absent?) }
     rule(:doc_comments) { (doc_comment >> (whitespace.maybe >> doc_comment).repeat).as(:documentation) }
-    
+
     # Whitespace (including comments)
     rule(:space) { match('\s').repeat(1) }
     rule(:space?) { space.maybe }
@@ -127,7 +115,7 @@ module Rng
       first_string = str('"') >> string_char.repeat.as(:string_parts) >> str('"')
       concat_part = whitespace >> str('~') >> whitespace >>
                     str('"') >> string_char.repeat.as(:concat_string_parts) >> str('"')
-      
+
       first_string >> concat_part.repeat.maybe.as(:concatenations)
     end
 
@@ -226,7 +214,7 @@ module Rng
     # Word boundary - ensure keywords are not followed by identifier characters
     # This prevents "text" from matching "textarea", etc.
     rule(:word_boundary) { match("[a-zA-Z0-9_-]").absent? }
-    
+
     # Keyword patterns with word boundaries
     rule(:text_def) { (str("text") >> word_boundary).as(:text) }
     rule(:empty_def) { (str("empty") >> word_boundary).as(:empty) }
