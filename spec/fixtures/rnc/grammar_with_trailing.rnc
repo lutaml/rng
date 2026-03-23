@@ -1,0 +1,8 @@
+grammar {
+
+start = element root { text }
+
+}
+
+# Trailing definition after grammar block
+external_def = element external { text }

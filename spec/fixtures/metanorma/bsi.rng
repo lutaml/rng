@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <!-- default namespace = "https://www.metanorma.com/ns/bsi" -->
+  <include href="isostandard.rng">
+    <start>
+      <ref name="bsi-standard"/>
+    </start>
+    <define name="DocumentType">
+      <choice>
+        <value>british-standard</value>
+        <value>draft-for-development</value>
+        <value>published-document</value>
+        <value>privately-subscribed-standard</value>
+        <value>publicly-available-specification</value>
+        <value>flex-standard</value>
+        <value>international-standard</value>
+        <value>technical-specification</value>
+        <value>technical-report</value>
+        <value>guide</value>
+        <value>international-workshop-agreement</value>
+        <value>industry-technical-agreement</value>
+        <value>standard</value>
+        <value>european-workshop-agreement</value>
+      </choice>
+    </define>
+    <define name="DocumentSubtype">
+      <choice>
+        <value>specification</value>
+        <value>method-of-test</value>
+        <value>method-of-specifying</value>
+        <value>vocabulary</value>
+        <value>code-of-practice</value>
+      </choice>
+    </define>
+    <define name="BibDataExtensionType">
+      <ref name="doctype"/>
+      <optional>
+        <ref name="docsubtype"/>
+      </optional>
+      <ref name="editorialgroup"/>
+      <zeroOrMore>
+        <ref name="ics"/>
+      </zeroOrMore>
+      <ref name="structuredidentifier"/>
+      <optional>
+        <ref name="stagename"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="coverimages"/>
+      </zeroOrMore>
+    </define>
+    <define name="admonition">
+      <element name="admonition">
+        <attribute name="type">
+          <ref name="AdmonitionType"/>
+        </attribute>
+        <optional>
+          <attribute name="class"/>
+        </optional>
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+        <optional>
+          <attribute name="target">
+            <data type="IDREF"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="uri">
+            <data type="anyURI"/>
+          </attribute>
+        </optional>
+        <optional>
+          <ref name="tname"/>
+        </optional>
+        <zeroOrMore>
+          <ref name="paragraph-with-footnote"/>
+        </zeroOrMore>
+        <zeroOrMore>
+          <ref name="note"/>
+        </zeroOrMore>
+      </element>
+    </define>
+    <define name="Clause-Section">
+      <optional>
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="language"/>
+      </optional>
+      <optional>
+        <attribute name="script"/>
+      </optional>
+      <optional>
+        <attribute name="inline-header">
+          <data type="boolean"/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="obligation">
+          <choice>
+            <value>normative</value>
+            <value>informative</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name="type"/>
+      </optional>
+      <optional>
+        <ref name="section-title"/>
+      </optional>
+      <choice>
+        <choice>
+          <oneOrMore>
+            <ref name="BasicBlock"/>
+          </oneOrMore>
+          <ref name="amend"/>
+        </choice>
+        <oneOrMore>
+          <choice>
+            <ref name="clause-subsection"/>
+            <ref name="floating-title"/>
+          </choice>
+        </oneOrMore>
+      </choice>
+    </define>
+    <define name="annex">
+      <element name="annex">
+        <optional>
+          <attribute name="id">
+            <data type="ID"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="language"/>
+        </optional>
+        <optional>
+          <attribute name="script"/>
+        </optional>
+        <optional>
+          <attribute name="inline-header">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="obligation">
+            <choice>
+              <value>normative</value>
+              <value>informative</value>
+            </choice>
+          </attribute>
+        </optional>
+        <optional>
+          <ref name="section-title"/>
+        </optional>
+        <zeroOrMore>
+          <!--
+            allow hanging paragraps in annexes: they introduce lists
+            ( paragraph-with-footnote | table | note | formula | admonition | ol | ul | dl | figure | quote | sourcecode | review | example )*,
+          -->
+          <ref name="BasicBlock"/>
+        </zeroOrMore>
+        <zeroOrMore>
+          <choice>
+            <ref name="clause-hanging-paragraph-with-footnote"/>
+            <ref name="floating-title"/>
+          </choice>
+        </zeroOrMore>
+        <zeroOrMore>
+          <ref name="annex-appendix"/>
+        </zeroOrMore>
+      </element>
+    </define>
+    <define name="clause-hanging-paragraph-with-footnote">
+      <element name="clause">
+        <optional>
+          <attribute name="id">
+            <data type="ID"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="language"/>
+        </optional>
+        <optional>
+          <attribute name="script"/>
+        </optional>
+        <optional>
+          <attribute name="inline-header">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="obligation">
+            <choice>
+              <value>normative</value>
+              <value>informative</value>
+            </choice>
+          </attribute>
+        </optional>
+        <optional>
+          <ref name="section-title"/>
+        </optional>
+        <zeroOrMore>
+          <!-- allow hanging paragraphs in annexes: they introduce lists -->
+          <ref name="BasicBlock"/>
+        </zeroOrMore>
+        <zeroOrMore>
+          <choice>
+            <ref name="clause-hanging-paragraph-with-footnote"/>
+            <ref name="floating-title"/>
+          </choice>
+        </zeroOrMore>
+      </element>
+    </define>
+    <define name="sections">
+      <element name="sections">
+        <zeroOrMore>
+          <choice>
+            <ref name="note"/>
+            <ref name="admonition"/>
+          </choice>
+        </zeroOrMore>
+        <optional>
+          <choice>
+            <ref name="floating-title"/>
+            <ref name="floating-section-title"/>
+          </choice>
+        </optional>
+        <ref name="clause"/>
+        <optional>
+          <choice>
+            <ref name="floating-title"/>
+            <ref name="floating-section-title"/>
+          </choice>
+        </optional>
+        <optional>
+          <choice>
+            <ref name="term-clause"/>
+            <ref name="terms"/>
+          </choice>
+        </optional>
+        <optional>
+          <choice>
+            <ref name="floating-title"/>
+            <ref name="floating-section-title"/>
+          </choice>
+        </optional>
+        <optional>
+          <ref name="definitions"/>
+        </optional>
+        <optional>
+          <choice>
+            <ref name="floating-title"/>
+            <ref name="floating-section-title"/>
+          </choice>
+        </optional>
+        <oneOrMore>
+          <choice>
+            <ref name="clause"/>
+            <ref name="term-clause"/>
+            <ref name="terms"/>
+            <ref name="floating-title"/>
+            <ref name="floating-section-title"/>
+          </choice>
+        </oneOrMore>
+      </element>
+    </define>
+  </include>
+  <!-- end overrides -->
+  <define name="floating-section-title">
+    <element name="section-title">
+      <attribute name="id">
+        <data type="ID"/>
+      </attribute>
+      <attribute name="depth">
+        <data type="int"/>
+      </attribute>
+      <zeroOrMore>
+        <ref name="TextElement"/>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="AdmonitionType" combine="choice">
+    <value>commentary</value>
+  </define>
+  <define name="coverimages">
+    <element name="coverimages">
+      <oneOrMore>
+        <ref name="image"/>
+      </oneOrMore>
+    </element>
+  </define>
+  <!--
+    We display the Normative References between scope and terms; but to keep the
+    grammar simple, we keep the references together
+  -->
+  <define name="bsi-standard">
+    <element name="bsi-standard">
+      <attribute name="version"/>
+      <attribute name="type">
+        <choice>
+          <value>semantic</value>
+          <value>presentation</value>
+        </choice>
+      </attribute>
+      <ref name="bibdata"/>
+      <zeroOrMore>
+        <ref name="termdocsource"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="misccontainer"/>
+      </optional>
+      <optional>
+        <ref name="boilerplate"/>
+      </optional>
+      <ref name="preface"/>
+      <oneOrMore>
+        <ref name="sections"/>
+      </oneOrMore>
+      <zeroOrMore>
+        <ref name="annex"/>
+      </zeroOrMore>
+      <ref name="bibliography"/>
+      <zeroOrMore>
+        <ref name="indexsect"/>
+      </zeroOrMore>
+    </element>
+  </define>
+</grammar>

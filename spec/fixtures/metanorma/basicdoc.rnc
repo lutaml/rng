@@ -1,0 +1,11 @@
+# Stub file for basicdoc.rnc - minimal implementation for testing
+default namespace = "http://example.org"
+
+start = element doc { text }
+DocumentType = text
+TextElement = text | strong | em
+PureTextElement = text
+BasicBlock = paragraph
+paragraph = element p { text }
+strong = element strong { text }
+em = element em { text }

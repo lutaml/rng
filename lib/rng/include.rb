@@ -15,7 +15,7 @@ module Rng
       map_attribute "href", to: :href
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_content to: :grammar
       map_element "define", to: :define

@@ -2,392 +2,450 @@
 
 require "parslet"
 require "nokogiri"
+require "lutaml/model"
+require "lutaml/model/xml/nokogiri_adapter"
+require "set"
 require_relative "grammar"
+require_relative "rnc_builder"
+require_relative "rnc_to_rng_converter"
+require_relative "include_processor"
+require_relative "parse_tree_processor"
+
+# Configure Nokogiri adapter for XML parsing
+Lutaml::Model::Config.configure do |config|
+  config.xml_adapter = Lutaml::Model::Xml::NokogiriAdapter
+end
 
 module Rng
   class RncParser < Parslet::Parser
+    # Helper method to extract clean string without Parslet position markers
+    def self.extract_string(obj)
+      if obj.respond_to?(:str)
+        # Parslet::Slice - use .str to get clean string
+        obj.str
+      elsif obj.is_a?(String)
+        obj
+      else
+        obj.to_s
+      end
+    end
+
+    # Comments
+    # Regular comment: single #
+    rule(:comment) { str("#") >> str("#").absent? >> match('[^\n]').repeat >> (str("\n") | any.absent?) }
+    rule(:comment?) { comment.maybe }
+    
+    # Documentation comment: ##
+    rule(:doc_comment) { str("##") >> match('[^\n]').repeat.as(:doc_line) >> (str("\n") | any.absent?) }
+    rule(:doc_comments) { (doc_comment >> (whitespace.maybe >> doc_comment).repeat).as(:documentation) }
+    
+    # Whitespace (including comments)
     rule(:space) { match('\s').repeat(1) }
     rule(:space?) { space.maybe }
     rule(:newline) { (str("\r").maybe >> str("\n")).repeat(1) }
     rule(:newline?) { newline.maybe }
-    rule(:whitespace) { (space | newline).repeat }
+    # Only regular comments in whitespace - doc comments are captured by pattern rules
+    rule(:whitespace) { (space | newline | comment).repeat }
     rule(:comma) { str(",") }
     rule(:comma?) { (whitespace >> comma >> whitespace).maybe }
 
-    rule(:identifier) { match("[a-zA-Z0-9_]").repeat(1).as(:identifier) }
+    # Escape sequences support
+    # Unicode code point: \x{HHHHHH} (1-6 hex digits)
+    rule(:hex_escape) do
+      str("\\x{") >> match('[0-9a-fA-F]').repeat(1, 6).as(:hex) >> str("}")
+    end
+
+    # Character escapes for strings: \", \\, \n, \r, \t
+    rule(:char_escape) do
+      str("\\") >> match('["\\\\ntr]').as(:char)
+    end
+
+    # Identifier can contain regular chars or hex escapes
+    rule(:identifier_char) do
+      hex_escape.as(:hex_escape) | match("[a-zA-Z0-9_-]").as(:char)
+    end
+
+    rule(:identifier) { identifier_char.repeat(1).as(:identifier_parts) }
     rule(:namespace_prefix) { identifier.as(:prefix) >> str(":") }
     rule(:namespace_prefix?) { namespace_prefix.maybe }
     rule(:qualified_name) { namespace_prefix? >> identifier.as(:local_name) }
 
-    rule(:datatype_library) { str("datatypes") >> space >> identifier.as(:prefix) >> space >> string_literal.as(:uri) }
+    # Name wildcards for anyName and nsName patterns
 
-    rule(:string_literal) { str('"') >> match('[^"]').repeat.as(:string) >> str('"') }
+    # anyName wildcard: *  or  * - exceptName
+    rule(:any_name_pattern) do
+      str("*") >>
+        (space >> str("-") >> space >> name_class_except).maybe.as(:except)
+    end
+
+    # nsName wildcard: prefix:*  or  prefix:* - exceptName
+    rule(:ns_name_pattern) do
+      namespace_prefix >> str("*") >>
+        (space >> str("-") >> space >> name_class_except).maybe.as(:except)
+    end
+
+    # Except clause can be a single name or multiple names in parentheses
+    rule(:name_class_except) do
+      (str("(") >> space? >> qualified_name >>
+       (space? >> str("|") >> space? >> qualified_name).repeat >>
+       space? >> str(")")) |
+        qualified_name
+    end
+
+    # Name_class rule is useful for EBNF generation of a name_class.
+    # It can parse a qualified name or the anyName/namespaceRef/externalRef patterns.
+    # !!!!!!!!!
+    # GENERAL RULE WALKING TO ANY BYTES WILL CONSUME FROM INPUT; ALL RULER CALLS (HIERARCHY) SHOULD FINALIZE
+    #     OTHERWISE THE BACKPROP TO DISQUALIFY THE PATTERN WONT WORK.
+    # !!!!!!!!!
+    # Try wildcards first (more specific), then fall back to qualified names
+    rule(:name_class) do
+      ns_name_pattern.as(:ns_name) |
+        any_name_pattern.as(:any_name) |
+        qualified_name.as(:name)
+    end
+
+    # Datatype library declaration (same as datatype_library but different name for clarity)
+    rule(:datatype_decl) {
+      str("datatypes") >> space >>
+      identifier.as(:prefix) >> space? >>
+      str("=") >> space? >>
+      string_literal.as(:uri)
+    }
+
+    # String literal with optional concatenation using ~ operator
+    # Supports escape sequences: \x{HEX}, \", \\, \n, \r, \t
+    # Control characters (0x00-0x1F, 0x7F) must be escaped
+    rule(:string_char) do
+      hex_escape.as(:hex_escape) |
+        char_escape.as(:char_escape) |
+        (str('\\').absent? >> str('"').absent? >>
+         match('[\u0000-\u001F\u007F]').absent? >> any)
+    end
+
+    rule(:string_literal) do
+      first_string = str('"') >> string_char.repeat.as(:string_parts) >> str('"')
+      concat_part = whitespace >> str('~') >> whitespace >>
+                    str('"') >> string_char.repeat.as(:concat_string_parts) >> str('"')
+      
+      first_string >> concat_part.repeat.maybe.as(:concatenations)
+    end
+
+    # Value pattern for literal values
+    rule(:value_literal) { string_literal.as(:value) }
+
+    # Mixed content pattern
+    rule(:mixed_pattern) do
+      str("mixed") >> whitespace >> str("{") >> whitespace >>
+        content.as(:mixed_content) >> whitespace >> str("}")
+    end
+
+    # Namespace declarations
+    # Default namespace (unprefixed): default namespace = "uri"
+    rule(:default_namespace_decl) do
+      str("default") >> space >> str("namespace") >> space? >>
+        str("=") >> space? >> string_literal.as(:uri)
+    end
+
+    # Default namespace (prefixed): default namespace prefix = "uri"
+    rule(:default_prefixed_namespace_decl) do
+      str("default") >> space >> str("namespace") >> space >>
+        identifier.as(:prefix) >> space? >>
+        str("=") >> space? >> string_literal.as(:uri)
+    end
+
+    # Prefixed namespace: namespace prefix = "uri"
+    rule(:prefixed_namespace_decl) do
+      str("namespace") >> space >>
+        identifier.as(:prefix) >> space? >>
+        str("=") >> space? >> string_literal.as(:uri)
+    end
+
+    # Any namespace declaration
+    rule(:namespace_decl) do
+      default_prefixed_namespace_decl.as(:default_prefixed_ns) |
+        default_namespace_decl.as(:default_ns) |
+        prefixed_namespace_decl.as(:prefixed_ns)
+    end
 
     rule(:element_def) do
-      str("element") >> space >>
-        qualified_name.as(:name) >>
+      (doc_comments >> whitespace).maybe.as(:docs) >>
+        str("element") >> space >>
+        name_class.as(:name) >>
+        whitespace >>
+        str("{") >> whitespace >>
+        content.maybe.as(:content) >> whitespace >>
+        str("}") >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)
+    end
+
+    rule(:attribute_def) do
+      (doc_comments >> whitespace).maybe.as(:docs) >>
+        str("attribute") >> space >>
+        name_class.as(:name) >>
         whitespace >>
         str("{") >>
         whitespace >>
-        content.maybe.as(:content) >>
+        attribute_content.as(:type) >>
         whitespace >>
         str("}") >>
         (str("*") | str("+") | str("?")).maybe.as(:occurrence)
     end
 
-    rule(:attribute_def) do
-      str("attribute") >> space >>
-        qualified_name.as(:name) >>
-        whitespace >>
-        str("{") >>
-        whitespace >>
-        (datatype_ref | str("text")).as(:type) >>
-        whitespace >>
-        str("}")
+    # Attribute content can be: parenthesized choice, datatype_ref, text, value literal, or choice of values
+    rule(:attribute_content) do
+      # Parenthesized choice: ( "a" | "b" | "c" ) or ( ref1 | ref2 )
+      (str("(") >> whitespace >>
+       (value_literal | identifier.as(:ref)) >>
+       (whitespace >> str("|") >> whitespace >> (value_literal | identifier.as(:ref))).repeat(1) >>
+       whitespace >> str(")")).as(:paren_choice) |
+      # Non-parenthesized choice of value literals: "a" | "b" | "c"
+      (value_literal >> (whitespace >> str("|") >> whitespace >> value_literal).repeat(1).as(:value_choice)) |
+        value_literal |
+        datatype_ref |
+        str("text").as(:text_type) |
+        identifier.as(:ref)
     end
 
     rule(:datatype_ref) do
-      identifier.as(:prefix) >> str(":") >> identifier.as(:type)
+      identifier.as(:prefix) >> str(":") >> identifier.as(:type) >>
+        (whitespace >> str("{") >> whitespace >>
+         param_list.as(:params) >> whitespace >> str("}")).maybe
     end
 
-    rule(:text_def) { str("text").as(:text) }
-    rule(:empty_def) { str("empty").as(:empty) }
+    # Parameter list for datatypes (e.g., pattern = "value", minLength = "1")
+    rule(:param_list) do
+      param_item >> (whitespace >> param_item).repeat
+    end
+
+    # Single parameter (e.g., pattern = "value")
+    rule(:param_item) do
+      identifier.as(:param_name) >> whitespace >> str("=") >> whitespace >>
+        string_literal.as(:param_value)
+    end
+
+    # Word boundary - ensure keywords are not followed by identifier characters
+    # This prevents "text" from matching "textarea", etc.
+    rule(:word_boundary) { match("[a-zA-Z0-9_-]").absent? }
+    
+    # Keyword patterns with word boundaries
+    rule(:text_def) { (str("text") >> word_boundary).as(:text) }
+    rule(:empty_def) { (str("empty") >> word_boundary).as(:empty) }
+    rule(:not_allowed_def) { (str("notAllowed") >> word_boundary).as(:not_allowed) }
+
+    rule(:list_pattern) do
+      str("list") >> whitespace >> str("{") >> whitespace >>
+        list_content.as(:list_content) >> whitespace >> str("}")
+    end
+
+    rule(:parent_ref) do
+      str("parent") >> space >> identifier.as(:parent_pattern)
+    end
+
+    rule(:external_ref) do
+      str("external") >> space >> string_literal.as(:external_href)
+    end
+
+    # List content can be: text, datatype references, or other patterns with occurrence markers
+    rule(:list_content_item) do
+      (datatype_ref | text_def | identifier.as(:ref)) >>
+        (str("*") | str("+") | str("?")).maybe.as(:occurrence)
+    end
+
+    rule(:list_content) do
+      list_content_item.as(:first) >>
+        (comma? >> list_content_item).repeat.as(:sequence_items).maybe
+    end
 
     rule(:group_def) do
       str("(") >>
         whitespace >>
         content.as(:group) >>
         whitespace >>
-        str(")") >>
-        (str("*") | str("+") | str("?")).maybe.as(:occurrence)
+        str(")") >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)
     end
 
-    rule(:choice_def) do
-      content_item.as(:first) >>
-        (whitespace >> str("|") >> whitespace >> content_item.as(:second)).repeat(1).as(:rest)
-    end
-
+    # Named pattern definition (e.g., "myPattern = element foo { text }")
     rule(:named_pattern) do
-      identifier.as(:name) >> whitespace >> str("=") >> whitespace >> content_item.as(:pattern)
+      (doc_comments >> whitespace).maybe.as(:docs) >>
+        identifier.as(:name) >> whitespace >>
+        (str("|=") | str("&=") | str("=")).as(:operator) >> whitespace >>
+        pattern_list.as(:pattern)
     end
 
-    rule(:content_item) do
-      element_def | attribute_def | text_def | empty_def | group_def | choice_def | identifier.as(:ref)
-    end
-
-    rule(:content) do
-      (content_item >> (comma? >> content_item).repeat).as(:items)
-    end
-
+    # Start pattern definition
     rule(:start_def) do
-      str("start") >> whitespace >> str("=") >> whitespace >> content_item.as(:start)
+      (doc_comments >> whitespace).maybe.as(:docs) >>
+        str("start") >> whitespace >>
+        (str("|=") | str("&=") | str("=")).as(:operator) >> whitespace >>
+        pattern_list.as(:start_pattern)
     end
 
+    # Pattern list - similar to content but without being wrapped in element/attribute
+    rule(:pattern_list) do
+      content_item.as(:first) >>
+        (
+          (whitespace >> str("|") >> whitespace >> content_item).repeat(1).as(:choice_items) |
+          (comma? >> content_item).repeat(1).as(:sequence_items)
+        ).maybe
+    end
+
+    # Choice is handled at content level, not as separate pattern
+    rule(:content_item) do
+      element_def | attribute_def | text_def | empty_def | not_allowed_def |
+        list_pattern | parent_ref | external_ref | group_def | mixed_pattern |
+        value_literal | datatype_ref |
+        (identifier.as(:ref) >> (str("*") | str("+") | str("?")).maybe.as(:occurrence))
+    end
+
+    # Content can be a sequence with commas, or alternatives with |
+    rule(:content) do
+      content_item.as(:first) >>
+        (
+          (whitespace >> str("|") >> whitespace >> content_item).repeat(1).as(:choice_items) |
+          (comma? >> content_item).repeat(1).as(:sequence_items)
+        ).maybe
+    end
+
+    # Parse balanced braces content - matches everything inside {} including nested {}
+    rule(:balanced_braces) do
+      (
+        (str("{") >> balanced_braces >> str("}")) |
+        (str("{").absent? >> str("}").absent? >> any)
+      ).repeat
+    end
+
+    # Include directive - capture override as raw text to avoid backtracking
+    # Will be parsed with proper scoping in post-processing
+    rule(:include_directive) do
+      str("include") >> space >> string_literal.as(:href) >> whitespace >>
+        (str("{") >> whitespace >>
+         balanced_braces.as(:raw_override) >>
+         whitespace >> str("}")).maybe.as(:override)
+    end
+
+    # Include directive - legacy layout with start_def first
+    rule(:include_directive_legacy) do
+      str("include") >> space >> string_literal.as(:href) >> whitespace >>
+        start_def.maybe.as(:start) >> whitespace >>
+        (named_pattern | element_def.as(:top_element)).repeat.as(:definitions)
+    end
+
+    # Div block for documentation and grouping
+    rule(:div_block) do
+      str("div") >> whitespace >> str("{") >> whitespace >>
+        (start_def.maybe.as(:start) >>
+         whitespace >>
+         (include_directive >> whitespace).repeat.as(:includes) >>
+         ((named_pattern | div_block.as(:nested_div) | element_def.as(:top_element)) >> whitespace).repeat.as(:patterns)) >>
+        whitespace >> str("}")
+    end
+
+    # Standalone pattern - like content_item but without element_def/attribute_def/value_literal
+    # These are patterns that can appear at grammar level without being definitions
+    # Note: value_literal (strings) should only appear inside elements/attributes
+    rule(:standalone_pattern) do
+      text_def | empty_def | not_allowed_def |
+        list_pattern | parent_ref | external_ref | group_def | mixed_pattern |
+        datatype_ref |
+        (identifier.as(:ref) >> (str("*") | str("+") | str("?")).maybe.as(:occurrence))
+    end
+
+    # Grammar can have optional datatype library, start, then multiple named patterns and elements
+    # Allow standalone patterns (like 'foo', 'text', 'empty', etc.) as a fallback
     rule(:grammar) do
-      whitespace >>
-        datatype_library.maybe.as(:datatype_library) >>
+      start_def.maybe.as(:start) >>
         whitespace >>
-        (start_def | named_pattern | element_def).as(:root) >>
-        (whitespace >> (named_pattern | element_def)).repeat.as(:definitions) >>
+        (include_directive >> whitespace).repeat.as(:includes) >>
+        ((named_pattern | div_block.as(:div) | element_def.as(:top_element) |
+          standalone_pattern.as(:standalone)) >> whitespace).repeat.as(:patterns)
+    end
+
+    # Grammar block wrapper - capture content as raw text to avoid backtracking
+    # Will be parsed with proper scoping in post-processing
+    rule(:grammar_block) do
+      str("grammar") >> whitespace >> str("{") >> whitespace >>
+        balanced_braces.as(:raw_grammar) >>
+        whitespace >> str("}")
+    end
+
+    # Included file - more flexible than grammar_wrapper
+    # Can be:
+    # 1. Just a flat grammar (patterns only)
+    # 2. Grammar block
+    # 3. Grammar block with trailing definitions
+    # 4. Preamble + grammar/grammar_block
+    # 5. Empty file
+    rule(:included_file) do
+      whitespace >>
+        preamble.maybe >>
+        whitespace >>
+        (
+          # Grammar block with optional trailing definitions
+          grammar_block.as(:inner_grammar) >>
+          (whitespace >> (named_pattern | element_def.as(:top_element))).repeat.as(:trailing_definitions) |
+          # Flat grammar (no wrapper)
+          grammar |
+          # Empty file is also valid
+          str("")
+        ) >>
         whitespace
     end
 
-    root(:grammar)
+    # Schema preamble - multiple namespace and datatype declarations
+    rule(:preamble_item) do
+      (namespace_decl | datatype_decl) >> whitespace
+    end
+
+    rule(:preamble) do
+      preamble_item.repeat.as(:preamble_items)
+    end
+
+    # Root can be a grammar block with optional definitions after, OR plain grammar (for flat RNC files), with optional preamble at top
+    root(:grammar_wrapper)
+    rule(:grammar_wrapper) do
+      whitespace >>
+        preamble.maybe >>
+        whitespace >>
+        (
+          # Try in order from most specific to least specific
+          # 1. Grammar block (starts with literal "grammar {")
+          (grammar_block.as(:inner_grammar) >>
+           (whitespace >> (named_pattern | element_def.as(:top_element))).repeat.as(:trailing_definitions)) |
+          # 2. Top-level includes (for Metanorma-style schemas) - use raw capture for trailing
+          ((include_directive >> whitespace).repeat(1).as(:top_includes) >>
+           whitespace >> any.repeat.as(:raw_trailing)) |
+          # 3. Flat grammar (default - most flexible) - raw_patterns handled internally
+          grammar
+        ) >>
+        whitespace
+    end
+
+    # Class method to parse a file with include resolution
+    def self.parse_file(file_path, base_dir = nil, visited_files = Set.new)
+      IncludeProcessor.new.parse_file(file_path, base_dir, visited_files)
+    end
 
     def self.parse(input)
       parser = new
       tree = parser.parse(input.strip)
-      convert_to_rng(tree)
+
+      # Normalize parse tree
+      processor = ParseTreeProcessor.new(tree)
+      normalized = processor.normalize
+
+      # Convert to RNG XML and Grammar object
+      rng_xml = convert_to_rng(normalized.grammar_tree)
+      Grammar.from_xml(rng_xml)
     end
 
+    # Convert RNG schema to RNC
     def self.to_rnc(schema)
-      # Convert RNG schema to RNC
-      builder = RncBuilder.new
-      builder.build(schema)
+      RncBuilder.new.build(schema)
     end
 
+    # Convert parse tree to RNG XML
     def self.convert_to_rng(tree)
-      builder = Nokogiri::XML::Builder.new(encoding: "UTF-8") do |xml|
-        if tree[:root].key?(:start)
-          # This is a grammar with named patterns
-          xml.grammar(xmlns: "http://relaxng.org/ns/structure/1.0") do
-            # Add datatype library if present
-            xml.datatypeLibrary tree[:datatype_library][:uri][:string].to_s if tree[:datatype_library]
-
-            # Process start pattern
-            xml.start do
-              process_content_item(xml, tree[:root][:start])
-            end
-
-            # Process named patterns
-            tree[:definitions]&.each do |def_item|
-              next unless def_item.key?(:name)
-
-              xml.define(name: def_item[:name][:identifier].to_s) do
-                process_content_item(xml, def_item[:pattern])
-              end
-            end
-          end
-        else
-          # This is a simple element pattern
-          process_content_item(xml, tree[:root])
-        end
-      end
-
-      builder.to_xml
-    end
-
-    def self.process_content_item(xml, item)
-      if item.key?(:name)
-        # Element definition
-        attrs = {}
-        attrs[:name] = item[:name][:local_name][:identifier].to_s
-
-        attrs[:ns] = item[:name][:prefix][:identifier].to_s if item[:name][:prefix]
-
-        xml.element(attrs) do
-          if item[:content]
-            item[:content][:items].each do |content_item|
-              process_content_item(xml, content_item)
-            end
-          end
-        end
-
-        # Handle occurrence
-        if item[:occurrence]
-          case item[:occurrence].to_s
-          when "*"
-            xml.parent.name = "zeroOrMore"
-          when "+"
-            xml.parent.name = "oneOrMore"
-          when "?"
-            xml.parent.name = "optional"
-          end
-        end
-      elsif item.key?(:attr_name)
-        # Attribute definition
-        attrs = {}
-        attrs[:name] = item[:attr_name][:local_name][:identifier].to_s
-
-        attrs[:ns] = item[:attr_name][:prefix][:identifier].to_s if item[:attr_name][:prefix]
-
-        xml.attribute(attrs) do
-          if item[:type] == "text"
-            xml.text
-          elsif item[:type].key?(:prefix)
-            xml.data(type: item[:type][:type][:identifier].to_s,
-                     datatypeLibrary: "http://www.w3.org/2001/XMLSchema-datatypes")
-          end
-        end
-      elsif item.key?(:text)
-        xml.text
-      elsif item.key?(:empty)
-        xml.empty
-      elsif item.key?(:group)
-        xml.group do
-          item[:group][:items].each do |group_item|
-            process_content_item(xml, group_item)
-          end
-        end
-
-        # Handle occurrence
-        if item[:occurrence]
-          case item[:occurrence].to_s
-          when "*"
-            xml.parent.name = "zeroOrMore"
-          when "+"
-            xml.parent.name = "oneOrMore"
-          when "?"
-            xml.parent.name = "optional"
-          end
-        end
-      elsif item.key?(:first) && item.key?(:rest)
-        # Choice definition
-        xml.choice do
-          process_content_item(xml, item[:first])
-          item[:rest].each do |choice_item|
-            process_content_item(xml, choice_item[:second])
-          end
-        end
-      elsif item.key?(:ref)
-        # Reference to a named pattern
-        xml.ref(name: item[:ref][:identifier].to_s)
-      end
-    end
-  end
-
-  class RncBuilder
-    def build(schema)
-      if schema.element
-        # Simple element pattern
-        build_element(schema.element)
-      else
-        # Grammar with named patterns
-        result = []
-
-        # Add datatype library if present
-        if schema.datatypeLibrary
-          result << "datatypes xsd = \"#{schema.datatypeLibrary}\""
-          result << ""
-        end
-
-        # Process start pattern
-        if schema.start
-          result << "start = #{build_pattern(schema.start)}"
-          result << ""
-        end
-
-        # Process named patterns
-        if schema.define && !schema.define.empty?
-          schema.define.each do |define|
-            result << "#{define.name} = #{build_pattern(define)}"
-            result << ""
-          end
-        end
-
-        result.join("\n")
-      end
-    end
-
-    private
-
-    def build_element(element)
-      result = "element #{element.name} {\n"
-      result += "  #{build_content(element)}\n"
-      result += "}"
-      result
-    end
-
-    def build_content(node)
-      content_parts = []
-
-      # Process attributes
-      if node.attribute
-        if node.attribute.is_a?(Array)
-          node.attribute.each do |attr|
-            content_parts << build_attribute(attr)
-          end
-        else
-          content_parts << build_attribute(node.attribute)
-        end
-      end
-
-      # Process child elements
-      if node.element
-        if node.element.is_a?(Array)
-          node.element.each do |elem|
-            content_parts << build_element(elem)
-          end
-        else
-          content_parts << build_element(node.element)
-        end
-      end
-
-      # Process text
-      content_parts << "text" if node.text
-
-      # Process empty
-      content_parts << "empty" if node.empty
-
-      # Process choice
-      if node.choice
-        choice_parts = []
-        if node.choice.is_a?(Array)
-          node.choice.each do |choice|
-            choice_parts << build_pattern(choice)
-          end
-        else
-          choice_parts << build_pattern(node.choice)
-        end
-        content_parts << choice_parts.join(" | ")
-      end
-
-      # Process group
-      if node.group
-        group_parts = []
-        if node.group.is_a?(Array)
-          node.group.each do |group|
-            group_parts << build_pattern(group)
-          end
-        else
-          group_parts << build_pattern(node.group)
-        end
-        content_parts << "(#{group_parts.join(", ")})"
-      end
-
-      # Process ref
-      if node.ref
-        if node.ref.is_a?(Array)
-          node.ref.each do |ref|
-            content_parts << ref.name
-          end
-        else
-          content_parts << node.ref.name
-        end
-      end
-
-      # Process zeroOrMore
-      content_parts << "#{build_pattern(node.zeroOrMore)}*" if node.zeroOrMore
-
-      # Process oneOrMore
-      content_parts << "#{build_pattern(node.oneOrMore)}+" if node.oneOrMore
-
-      # Process optional
-      content_parts << "#{build_pattern(node.optional)}?" if node.optional
-
-      content_parts.join(",\n  ")
-    end
-
-    def build_attribute(attr)
-      result = "attribute #{attr.name} { "
-
-      result += if attr.data
-                  if attr.data.type
-                    "xsd:#{attr.data.type}"
-                  else
-                    "text"
-                  end
-                else
-                  "text"
-                end
-
-      result += " }"
-      result
-    end
-
-    def build_pattern(node)
-      if node.element
-        build_element(node.element)
-      elsif node.ref
-        node.ref.name
-      elsif node.choice
-        choice_parts = []
-        if node.choice.is_a?(Array)
-          node.choice.each do |choice|
-            choice_parts << build_pattern(choice)
-          end
-        else
-          choice_parts << build_pattern(node.choice)
-        end
-        choice_parts.join(" | ")
-      elsif node.group
-        group_parts = []
-        if node.group.is_a?(Array)
-          node.group.each do |group|
-            group_parts << build_pattern(group)
-          end
-        else
-          group_parts << build_pattern(node.group)
-        end
-        "(#{group_parts.join(", ")})"
-      elsif node.text
-        "text"
-      elsif node.empty
-        "empty"
-      else
-        # Default case
-        ""
-      end
+      RncToRngConverter.new.convert(tree)
     end
   end
 end

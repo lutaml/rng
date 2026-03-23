@@ -1,0 +1,58 @@
+# Currently we inherit from a namespaced grammar, isostandard. Until we inherit from isodoc,
+# we cannot have a new default namespace: we will end up with a grammar with two different
+# namespaces, one for isostandard and one for csand additions. And we do not want that.
+
+include "isodoc.rnc" {
+
+start = iho-standard
+
+DocumentType =
+"policy-and-procedures" | "best-practices" | "supporting-document" | "report" | "legal" | "directives" | "proposal" | 
+        "standard" 
+
+editorialgroup = element editorialgroup {
+  (committee | workgroup | commission)+
+}
+
+BibDataExtensionType =
+    doctype?, docsubtype?, editorialgroup*, ics*, commentperiod?
+
+annex =
+  element annex {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { ( "normative" | "informative" ) },
+    section-title?,
+    ( ( BasicBlock* ),
+      (annex-subsection | terms | definitions | references)* ),
+      annex-appendix*
+}
+
+}
+
+committee = element committee { IHO_Group }
+workgroup = element workgroup { IHO_Group }
+commission = element commission { IHO_Group }
+
+IHO_Group =
+  element name { text }?,
+  element abbreviation { text },
+  (committee | workgroup | commission)?
+
+annex-appendix =
+  element appendix { Clause-Section }
+
+commentperiod = element commentperiod {
+element from { ISO8601Date },
+element to { ISO8601Date }?
+}
+
+iho-standard =
+  element iho-standard {
+attribute version { text },
+  attribute type { "semantic" | "presentation" },
+    bibdata, termdocsource*, misccontainer?, boilerplate?, preface, sections+, annex*, bibliography, indexsect*
+ }
+

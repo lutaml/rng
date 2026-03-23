@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <!--
+    default namespace = "http://riboseinc.com/csd"
+    Currently we inherit from a namespaced grammar, isostandard. Until we inherit from isodoc,
+    we cannot have a new default namespace: we will end up with a grammar with two different
+    namespaces, one for isostandard and one for csd additions. And we do not want that.
+  -->
+  <include href="isodoc.rng">
+    <start>
+      <ref name="csd-standard"/>
+    </start>
+    <define name="figure">
+      <element name="figure">
+        <attribute name="id">
+          <data type="ID"/>
+        </attribute>
+        <optional>
+          <attribute name="unnumbered">
+            <data type="boolean"/>
+          </attribute>
+        </optional>
+        <optional>
+          <attribute name="number"/>
+        </optional>
+        <optional>
+          <attribute name="subsequence"/>
+        </optional>
+        <optional>
+          <attribute name="class"/>
+        </optional>
+        <optional>
+          <ref name="source"/>
+        </optional>
+        <optional>
+          <ref name="tname"/>
+        </optional>
+        <choice>
+          <oneOrMore>
+            <ref name="figure"/>
+          </oneOrMore>
+          <group>
+            <choice>
+              <zeroOrMore>
+                <ref name="TextElement"/>
+              </zeroOrMore>
+              <ref name="pre"/>
+            </choice>
+            <zeroOrMore>
+              <ref name="note"/>
+            </zeroOrMore>
+            <optional>
+              <ref name="dl"/>
+            </optional>
+          </group>
+        </choice>
+      </element>
+    </define>
+    <define name="DocumentType">
+      <choice>
+        <value>directive</value>
+        <value>guide</value>
+        <value>specification</value>
+        <value>standard</value>
+        <value>report</value>
+        <value>administrative</value>
+        <value>amendment</value>
+        <value>technical corrigendum</value>
+        <value>advisory</value>
+      </choice>
+    </define>
+    <define name="BibDataExtensionType">
+      <optional>
+        <ref name="doctype"/>
+      </optional>
+      <optional>
+        <ref name="docsubtype"/>
+      </optional>
+      <ref name="editorialgroup"/>
+      <zeroOrMore>
+        <ref name="ics"/>
+      </zeroOrMore>
+    </define>
+    <define name="editorialgroup">
+      <element name="editorialgroup">
+        <oneOrMore>
+          <ref name="technical-committee"/>
+        </oneOrMore>
+      </element>
+    </define>
+    <define name="technical-committee">
+      <element name="committee">
+        <optional>
+          <attribute name="type"/>
+        </optional>
+        <text/>
+      </element>
+    </define>
+  </include>
+  <define name="csd-standard">
+    <element name="csd-standard">
+      <attribute name="version"/>
+      <attribute name="type">
+        <choice>
+          <value>semantic</value>
+          <value>presentation</value>
+        </choice>
+      </attribute>
+      <ref name="bibdata"/>
+      <zeroOrMore>
+        <ref name="termdocsource"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="misccontainer"/>
+      </optional>
+      <optional>
+        <ref name="boilerplate"/>
+      </optional>
+      <ref name="preface"/>
+      <oneOrMore>
+        <ref name="sections"/>
+      </oneOrMore>
+      <zeroOrMore>
+        <ref name="annex"/>
+      </zeroOrMore>
+      <ref name="bibliography"/>
+      <zeroOrMore>
+        <ref name="indexsect"/>
+      </zeroOrMore>
+    </element>
+  </define>
+</grammar>

@@ -31,11 +31,11 @@ module Rng
       map_attribute "id", to: :id
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_element "element", to: :element
       map_element "attribute", to: :attribute
@@ -47,7 +47,8 @@ module Rng
       map_element "optional", to: :optional
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
-      map_element "text", to: :text
+      map_element "text", to: :text, render_empty: :as_blank,
+                          render_default: true
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data

@@ -1,0 +1,873 @@
+# instantiations of this grammar may replace leaf strings
+# with more elaborated types; e.g. title (text) replaced with
+# title-main, title-intro, title-part; type replaced with
+# enum.
+#
+# some renaming at leaf nodes is permissible
+#
+# obligations can change both from optional to mandatory,
+# and from mandatory to optional; optional elements may
+# be omitted; freely positioned alternatives may be replaced
+# with strict ordering
+#
+# DO NOT introduce a namespace here. We do not want a distinct namespace
+# for these elements, and a distinct namespace for any grammar inheriting
+# these elements; we just want one namespace for any child grammars
+# of this.
+
+grammar {
+
+include "reqt.rnc" { }
+
+#include "biblio.rnc" { }
+
+include "basicdoc.rnc" { 
+
+start = standard-document
+
+doctype = element doctype { 
+    attribute abbreviation { text }?,
+    DocumentType 
+}
+
+index = element index {
+  attribute to { xsd:IDREF }?,
+  element primary { (PureTextElement|stem)+ },
+  element secondary { (PureTextElement|stem)+ }?,
+  element tertiary { (PureTextElement|stem)+ }?
+}
+
+bibitem =
+  element bibitem {
+     attribute id { xsd:ID },
+     attribute hidden { xsd:boolean }?,
+     BibliographicItem
+}
+
+section-title =
+  element title { TextElement* },
+  element variant-title { TypedTitleString }*
+
+hyperlink =
+  element link {
+    attribute target { xsd:anyURI },
+    attribute type { ReferenceFormat }?,
+    attribute alt { text }?,
+    attribute update-type { xsd:boolean }?,
+    PureTextElement+
+}
+
+xref =
+  element xref {
+     attribute target { xsd:string { pattern = "\i\c*|\c+#\c+" }},
+     attribute to { xsd:string { pattern = "\i\c*|\c+#\c+" }}?,
+     attribute type { ReferenceFormat }?,
+     attribute alt { text }?,
+     attribute case { "capital" | "lowercase" }?,
+     attribute droploc { xsd:boolean }?,
+     XrefBody
+}
+
+erefType =
+    attribute normative { xsd:boolean }?,
+    attribute citeas { text },
+    attribute type { ReferenceFormat },
+    attribute alt { text }?,
+    attribute case { "capital" | "lowercase" }?,
+    attribute droploc { xsd:boolean }?,
+    CitationType,
+    PureTextElement+
+
+
+localityStack =
+  element localityStack { 
+    attribute connective { "and" | "or" | "from" | "to" | "" }?,
+    locality* 
+}
+
+sourceLocalityStack =
+  element sourceLocalityStack { 
+    attribute connective { "and" | "or" | "from" | "to" | "" }?,
+    sourceLocality* 
+}
+
+ul =
+  element ul {
+    attribute id { xsd:ID },
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    ul_li+, note*
+}
+
+ol =
+  element ol {
+    attribute id { xsd:ID },
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    attribute type { ( "roman" | "alphabet" | "arabic" |
+                       "roman_upper" | "alphabet_upper" ) }?,
+    li+, note*
+}
+
+dl =
+  element dl {
+    attribute id { xsd:ID },
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute key { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    (dt, dd)+, note*
+}
+
+dt =
+  element dt { 
+    attribute id { xsd:ID }?,
+    TextElement*
+  }
+
+
+example =
+  element example {
+    attribute id { xsd:ID },
+    attribute unnumbered { xsd:boolean }?,
+    attribute subsequence { text }?,
+    attribute number { text }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    tname?,
+    ( formula | ul | ol | dl | quote | sourcecode | paragraph-with-footnote | figure )+,
+    note*
+}
+
+table =
+  element table {
+    attribute id { xsd:ID },
+    attribute unnumbered { xsd:boolean }?,
+    attribute number { text }?,
+    attribute subsequence { text }?,
+    attribute alt { text }?,
+    attribute summary { text }?,
+    attribute uri { xsd:anyURI }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute width { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    colgroup?, tname?, thead?, tbody, tfoot?, table-note*, dl?
+  }
+
+figure =
+  element figure {
+    attribute id { xsd:ID },
+    attribute unnumbered { xsd:boolean }?,
+    attribute number { text }?,
+    attribute subsequence { text }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute class { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+     source?, tname?, (image | video | audio | pre | paragraph-with-footnote+ | figure*), fn*, dl?, note*
+  }
+
+sourcecode =
+  element sourcecode {
+    attribute id { xsd:ID },
+    attribute unnumbered { xsd:boolean }?,
+    attribute number { text }?,
+    attribute subsequence { text }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute lang { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    tname?, ( text | callout )+, annotation*, note*
+  }
+
+formula =
+  element formula {
+    attribute id { xsd:ID },
+    attribute unnumbered { xsd:boolean }?,
+    attribute number { text }?,
+    attribute subsequence { text }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute inequality { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    stem, dl?, note*
+}
+
+ParagraphType =
+    attribute id { xsd:ID },
+    attribute align { Alignments }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+   ( TextElement )*, note*
+
+paragraph-with-footnote =
+  element p {
+    attribute id { xsd:ID },
+    attribute align { Alignments }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+   ( TextElement | fn  )*, note*
+}
+
+quote =
+  element quote {
+    attribute id { xsd:ID },
+    attribute alignment { Alignments }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    quote-source?,
+    quote-author?,
+    paragraph-with-footnote+,
+    note*
+}
+
+BibDataExtensionType = 
+  doctype,
+  docsubtype?,
+  editorialgroup?,
+  ics*,
+  structuredidentifier*
+
+# TitleType = text
+
+sections =
+  element sections {
+    ( clause | terms | term-clause | definitions | floating-title )+
+}
+
+references =
+  element references {
+    attribute id { xsd:ID }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute normative { xsd:boolean },
+    section-title?,
+    BasicBlock*,
+    (bibitem, note*)*,
+    references*
+}
+
+note = element note {
+    attribute id { xsd:ID },
+    attribute unnumbered { xsd:boolean }?,
+    attribute number { text }?,
+    attribute subsequence { text }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute type { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    (paragraph | ul | ol | dl | formula | quote | sourcecode)+
+}
+
+Basic-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    (BasicBlock+)
+
+li =
+  element li {
+    attribute id { xsd:ID }?,
+    BasicBlock+
+    # exclude figures?
+  }
+
+dd =
+  element dd {
+    # exclude figures?
+    BasicBlock*
+  }
+
+thead = element thead { tr+ }
+
+td =
+  element td {
+    attribute colspan { text }?,
+    attribute rowspan { text }?,
+    attribute align { "left" | "right" | "center" }?,
+    attribute valign { "top" | "middle" | "bottom" | "baseline" }?,
+    (
+      (TextElement | fn )* |
+      (paragraph-with-footnote | dl | ul | ol | figure)+
+    )
+}
+
+th =
+  element th {
+    attribute colspan { text }?,
+    attribute rowspan { text }?,
+    attribute align { "left" | "right" | "center" }?,
+    attribute valign { "top" | "middle" | "bottom" | "baseline" }?,
+    (
+      (TextElement | fn )* |
+      paragraph-with-footnote+
+    )
+}
+
+table-note = element note {
+    attribute id { xsd:ID }?,
+ paragraph
+}
+
+em = element em { (PureTextElement|stem|index|eref|xref|hyperlink)* }
+strong = element strong { (PureTextElement|stem|index|eref|xref|hyperlink)* }
+tt = element tt { (PureTextElement|index|eref|xref|hyperlink)* }
+keyword = element keyword { (PureTextElement|index)* }
+strike = element strike { (PureTextElement|index)* }
+underline = element underline { (PureTextElement|index)* }
+smallcap = element smallcap { (PureTextElement|index)* }
+sub = element sub { (PureTextElement|stem)* }
+sup = element sup { (PureTextElement|stem)* }
+
+pagebreak = element pagebreak { 
+  attribute orientation { "landscape" | "portrait" }?
+}
+
+}
+
+# end overrides
+
+image |=
+  element svg {
+     ( text | AnyElement )+
+}
+
+
+MultilingualRenderingType = "common" | "all-columns" | "parallel" | "tag"
+
+docsubtype = element subdoctype { DocumentSubtype }
+
+DocumentSubtype = text
+
+colgroup = element colgroup { col+ }
+
+col = element col {
+    attribute width { text }
+}
+
+BibItemType |= "internal"
+
+TextElement |= concept | add | del
+
+add = element add { PureTextElement | eref | stem | keyword | xref | hyperlink }
+del = element del { PureTextElement | eref | stem | keyword | xref | hyperlink }
+
+concept = element concept {
+  attribute ital { xsd:boolean }?,
+  attribute ref { xsd:boolean }?,
+  attribute linkmention { xsd:boolean }?,
+  attribute linkref { xsd:boolean }?,
+  element refterm { (PureTextElement|stem)* }?,
+  element renderterm { (PureTextElement|stem)* }?,
+  ( eref | xref | termref )
+}
+
+BasicBlock |= requirement | recommendation | permission | imagemap | svgmap | inputform | toc | passthrough
+
+toc = element toc {
+   ( ul )
+}
+
+passthrough = element passthrough {
+    attribute formats { text }?,
+    text
+}
+
+inputform = element form {
+    attribute id { xsd:ID },
+    attribute name { text },
+    attribute action { text },
+    attribute class { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    ( TextElement | FormInput )*
+}
+
+FormInput = input | formlabel | select | textarea
+
+InputType = "button" | "checkbox" | "date" | "file" | "password" | "radio" | "submit" | "text"
+
+input = element input {
+    attribute type { InputType },
+    attribute checked { xsd:boolean }?,
+    attribute disabled { xsd:boolean }?,
+    attribute readonly { xsd:boolean }?,
+    attribute maxlength { xsd:int }?,
+    attribute minlength { xsd:int }?,
+    attribute name { text }?,
+    attribute value { text }?,
+    attribute id { xsd:ID }?
+}
+
+formlabel = element label {
+    attribute for { xsd:IDREF },
+    PureTextElement*
+}
+
+select = element select {
+    attribute name { text }?,
+    attribute value { text }?,
+    attribute id { xsd:ID }?,
+    attribute disabled { xsd:boolean }?,
+    attribute multiple { xsd:boolean }?,
+    attribute size { xsd:int }?,
+    option+
+}
+
+option = element option {
+    attribute disabled { xsd:boolean }?,
+    attribute value { text }?,
+    PureTextElement*
+}
+
+textarea = element textarea {
+    attribute name { text }?,
+    attribute value { text }?,
+    attribute id { xsd:ID }?,
+    attribute rows { xsd:int }?,
+    attribute cols { xsd:int }?
+}
+
+bibliography =
+  element bibliography {
+    (references | reference-clause)+
+}
+
+reference-clause =
+  element clause {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute number { text }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    BasicBlock*,
+    (
+       reference-clause+ | references*
+    )
+}
+
+editorialgroup = element editorialgroup {
+  technical-committee+
+}
+
+technical-committee =
+  element technical-committee { IsoWorkgroup }
+
+IsoWorkgroup =
+    attribute number { text }?,
+    attribute type { text }?,
+    attribute identifier { text }?,
+    attribute prefix { text }?,
+    text
+
+ics = element ics {
+  element code { text },
+  element text { text }?
+}
+
+standard-document =
+element standard-document {
+  attribute version { text },
+  attribute type { "semantic" | "presentation" },
+  bibdata, misccontainer?, boilerplate?, preface?, sections, annex*, bibliography?, indexsect*
+}
+
+misccontainer = element misc-container { AnyElement+ }
+
+preface =
+  element preface { ( content | abstract | foreword | introduction | acknowledgements)+ }
+
+foreword =
+  element foreword { Content-Section }
+
+introduction =
+  element introduction { Content-Section }
+
+indexsect = element indexsect { Content-Section }
+
+boilerplate = 
+  element boilerplate { copyright-statement?, license-statement?, legal-statement?, feedback-statement? }
+
+copyright-statement =
+  element copyright-statement { Content-Section }
+
+license-statement =
+  element license-statement { Content-Section }
+
+legal-statement =
+  element legal-statement { Content-Section }
+
+feedback-statement =
+  element feedback-statement { Content-Section }
+
+definitions =
+  element definitions {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute type { text }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    (BasicBlock*,
+    dl)+
+}
+
+content =
+  element clause { Content-Section }
+
+abstract =
+  element abstract { Content-Section }
+
+acknowledgements =
+  element acknowledgements { Content-Section }
+
+content-subsection =
+  element clause { Content-Section }
+
+Content-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute number { text }?,
+    attribute type { text }?,
+    section-title?,
+    ( (BasicBlock*),
+      content-subsection* )
+
+clause =
+  element clause { Clause-Section }
+
+Clause-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute type { text }?,
+    attribute number { text }?,
+    section-title?,
+    (
+      ( (  BasicBlock+ ) | amend ) |
+       (clause-subsection | terms | definitions | floating-title )+
+    )
+
+Annex-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    (
+      ( BasicBlock* ),
+       (annex-subsection | terms | definitions | references | floating-title )*
+    )
+
+clause-subsection =
+  element clause { Clause-Section }
+
+annex-subsection =
+  element clause { Annex-Section }
+
+annex =
+  element annex { Annex-Section }       
+
+terms =
+  element terms {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute type { text }?,
+    attribute number { text }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    BasicBlock*,
+    (term+ | ( terms*, definitions?) )
+  }
+
+term =
+  element term {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    preferred+, admitted*, deprecates*, related*,
+    termdomain?, termsubject?, 
+    termdefinition+, termnote*, termexample*, termsource*
+  }
+
+preferred =
+  element preferred { Designation }
+
+admitted =
+  element admitted { Designation }
+
+related = 
+  element related {
+    attribute type { RelatedTermType },
+    element preferred { Designation },
+    ( eref | xref | termref )
+}
+
+RelatedTermType = 
+  "deprecates" | "supersedes" | "narrower" | "broader" | "equivalent" | "compare" | "contrast" | "see"
+
+deprecates =
+  element deprecates { Designation }
+
+Designation = 
+  attribute absent { xsd:boolean }?,
+  attribute geographic-area { text }?,
+  (expression_designation | letter_symbol_designation | graphical_symbol_designation ),
+  fieldofapplication?, usageinfo?,
+  termsource*
+
+fieldofapplication =
+  element field-of-application { PureTextElement+ }
+
+usageinfo =
+  element usage-info { PureTextElement+ }
+
+letter_symbol_designation =
+  element letter-symbol {
+    attribute isInternational { xsd:boolean }?,
+    element name { (PureTextElement | stem)+ }
+  }
+
+graphical_symbol_designation =
+  element graphical-symbol {
+    attribute isInternational { xsd:boolean }?,
+    figure
+  }
+
+expression_designation =
+  element expression {
+    ## ISO-639
+    attribute language { text }?,
+    ## ISO-15924
+    attribute script { text }?,
+    attribute type { ExpressionDesignationType }?,
+    attribute isInternational { xsd:boolean }?,
+    element name { (PureTextElement|stem|index)* },
+    element abbreviation-type { AbbreviationType }?,
+    element pronunciation { LocalizedString }?,
+    element grammar { Grammar }?
+  }
+
+ExpressionDesignationType = "prefix" | "suffix" | "abbreviation" | "full"
+
+AbbreviationType = "truncation" | "acronym" | "initialism"
+
+Grammar =
+  element gender { GrammarGender }*,
+  element number { GrammarNumber }*,
+  element isPreposition { xsd:boolean }?,
+  element isParticiple { xsd:boolean }?,
+  element isAdjective { xsd:boolean }?,
+  element isVerb { xsd:boolean }?,
+  element isAdverb { xsd:boolean }?,
+  element isNoun { xsd:boolean }?,
+  element grammar-value { text }*
+
+GrammarGender = "masculine" | "feminine" | "neuter" | "common"
+
+GrammarNumber = "singular" | "dual" | "plural"
+  
+termdomain =
+  element domain { TextElement+ }
+
+termsubject =
+  element subject { TextElement+ }
+
+termdefinition =
+  element definition {
+    verbaldefinition | nonverbalrep | (verbaldefinition, nonverbalrep)
+  }
+
+verbaldefinition = element verbal-definition {
+    (paragraph | dl | ol | ul | table | figure | formula)+,
+    termsource*
+}
+
+nonverbalrep =
+  element non-verbal-representation {
+    ( table | figure | formula )+,
+    termsource*
+}
+
+termnote =
+  element termnote { 
+    attribute id { xsd:ID },
+    attribute unnumbered { xsd:boolean }?,
+    attribute number { text }?,
+    attribute subsequence { text }?,
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    (paragraph | ul | ol | dl | formula)+
+}
+
+termexample =
+  element termexample { 
+    attribute id { xsd:ID },
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    ( formula | ul | ol | dl | quote | sourcecode | paragraph | figure )+
+}
+
+termsource =
+  element termsource {
+    attribute status { ( "identical" | "modified" ) },
+    attribute type { ( "authoritative" | "lineage" ) },
+    origin, modification?
+}
+
+origin =
+  element origin { erefType | termref }
+
+modification =
+  element modification { paragraph }
+
+termref = element termref {
+  attribute base { text },
+  attribute target { text },
+  text?
+}
+
+structuredidentifier = element structuredidentifier {
+  attribute type { text }?,
+  element agency { text }+,
+  element class { text }?,
+  element docnumber { text },
+  element partnumber { text }?,
+  element edition { text }?,
+  element version { text }?,
+  element supplementtype { text }?,
+  element supplementnumber { text }?,
+  element language { text }?,
+  element year { text }?
+}
+
+term-clause =
+  element clause {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    BasicBlock*,
+    (
+       (term-clause | terms | definitions)*
+    )
+}
+
+termdocsource =
+  element termdocsource { CitationType }
+
+amend = 
+  element amend {
+    attribute id { xsd:ID }?,
+    attribute change { "add" | "modify" | "delete" | "replace" },
+    attribute path { text }?,
+    attribute path_end { text }?,
+    attribute title { text }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    element location { locality* }?,
+    autonumber*,
+    element description { BasicBlock* }?,
+    element newcontent { 
+        attribute id { xsd:ID }?,
+        BasicBlock* }?,
+    element description { BasicBlock* }?
+}
+
+autonumber =
+  element autonumber {
+    attribute type { "requirement" | "recommendation" | "permission" | "table" | "figure" | "admonition" | "formula" | "sourcecode" | "example" | "note" },
+    text
+}
+
+imagemap = element imagemap {
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+  figure, 
+  element area {
+    attribute type { "rect" | "circle" | "ellipse" | "poly" },
+    ( xref | hyperlink | eref ),
+    element coords {
+      attribute x { xsd:float },
+      attribute y { xsd:float }
+    }+,
+    element radius {
+      attribute x { xsd:float },
+      attribute y { xsd:float }?
+    }?
+  }*
+}
+
+svgmap = element svgmap {
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+  figure,
+  element target {
+     attribute href { xsd:anyURI },
+    ( xref | hyperlink | eref )
+  }*
+}
+
+ul_li =
+  element li {
+    attribute id { xsd:ID }?,
+    attribute uncheckedcheckbox { xsd:boolean }?,
+    attribute checkedcheckbox { xsd:boolean }?,
+    BasicBlock+
+}
+
+floating-title =
+  element floating-title {
+    attribute id { xsd:ID },
+    attribute depth { xsd:int },
+    TextElement*
+}
+
+XrefBody =
+     XrefTarget*,
+     PureTextElement+
+
+XrefTarget =
+  element location {
+    attribute target { xsd:string { pattern = "\i\c*|\c+#\c+" }},
+    attribute connective { "and" | "or" | "from" | "to" | "" }
+}
+
+}

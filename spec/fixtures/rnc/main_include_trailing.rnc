@@ -1,0 +1,3 @@
+include "grammar_with_trailing.rnc"
+
+start = element doc { text }

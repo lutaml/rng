@@ -1,0 +1,43 @@
+#default namespace isostandard = "https://www.metanorma.com/ns/iso"
+
+include "isostandard.rnc" {
+
+start = iso-standard
+
+sections =
+  element sections {
+    clause+
+  }
+
+clause =
+  element clause {
+    attribute change { "add" | "delete" | "modify" }?,
+    attribute locality { text }?,
+    Clause-Section
+  }
+
+iso-standard =
+  element iso-standard {
+attribute version { text },
+  attribute type { "semantic" | "presentation" },
+    bibdata, misccontainer?, boilerplate?, preface, sections+
+  }
+
+documentnumber =        
+  element project-number {
+    attribute part { xsd:int }?,
+    attribute subpart { xsd:int }?,
+    attribute amendment { xsd:int }?,
+    attribute corrigendum { xsd:int }?,
+    attribute origyr { ISO8601Date }?,
+    text
+   }     
+
+BibDataExtensionType =
+        doctype, docsubtype?, editorialgroup, ics*, structuredidentifier, stagename?, updates_document_type?
+}
+
+# end overrides
+
+updates_document_type = element updates-document-type { DocumentType }
+

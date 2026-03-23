@@ -1,0 +1,10 @@
+grammar {
+
+start = element root { text }
+
+BasicBlock = text
+
+}
+
+# Augment outside grammar block
+BasicBlock |= element extra { text }

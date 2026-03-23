@@ -30,6 +30,9 @@ module Rng
     attribute :grammar, Grammar
     attribute :parent_ref, ParentRef
     attribute :external_ref, ExternalRef
+    attribute :documentation, :string
+    attribute :foreign_attributes, ForeignAttribute, collection: true
+    attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
       root "element", ordered: true
@@ -38,11 +41,11 @@ module Rng
       map_attribute "name", to: :attr_name
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "id", to: :id
       map_element "name", to: :name
@@ -57,7 +60,8 @@ module Rng
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
       map_element "anyName", to: :anyName
-      map_element "text", to: :text
+      map_element "text", to: :text, render_empty: :as_blank,
+                          render_default: true
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data
@@ -67,6 +71,9 @@ module Rng
       map_element "grammar", to: :grammar
       map_element "parentRef", to: :parent_ref
       map_element "externalRef", to: :external_ref
+      map_element "documentation", to: :documentation,
+                                   namespace: "http://relaxng.org/ns/compatibility/annotations/1.0",
+                                   prefix: "a"
     end
   end
 end

@@ -1,0 +1,104 @@
+#default namespace = "https://www.metanorma.com/ns/bsi"
+
+include "isostandard.rnc" {
+
+start = bsi-standard
+
+DocumentType =
+     "british-standard" | "draft-for-development" | "published-document" |
+     "privately-subscribed-standard" | "publicly-available-specification" |
+     "flex-standard" | "international-standard" | "technical-specification" |
+     "technical-report" | "guide" | "international-workshop-agreement" |
+     "industry-technical-agreement" | "standard" | "european-workshop-agreement"
+
+DocumentSubtype = "specification" | "method-of-test" | "method-of-specifying" |
+                  "vocabulary" | "code-of-practice"
+
+BibDataExtensionType =
+        doctype, docsubtype?, editorialgroup, ics*, structuredidentifier, 
+        stagename?, coverimages*
+
+admonition =
+  element admonition {
+    attribute type { AdmonitionType },
+    attribute class { text }?,
+    attribute id { xsd:ID },
+    attribute target { xsd:IDREF }?,
+    attribute uri { xsd:anyURI }?,
+    tname?,
+    paragraph-with-footnote*,
+    note*
+  }
+
+Clause-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute type { text }?,
+    section-title?,
+    (
+      ( ( BasicBlock+ ) | amend) | (clause-subsection | floating-title)+
+    )
+
+annex =
+  element annex {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    # allow hanging paragraps in annexes: they introduce lists
+    #( paragraph-with-footnote | table | note | formula | admonition | ol | ul | dl | figure | quote | sourcecode | review | example )*,
+    BasicBlock*,
+    (clause-hanging-paragraph-with-footnote | floating-title)*,
+    annex-appendix*
+  }
+
+clause-hanging-paragraph-with-footnote =
+  element clause {
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute  inline-header  {   xsd:boolean  } ? ,
+    attribute obligation { "normative" | "informative" }?,
+    section-title?,
+    # allow hanging paragraphs in annexes: they introduce lists
+    BasicBlock*,
+    (clause-hanging-paragraph-with-footnote | floating-title)*
+  }
+
+sections =
+  element sections {
+    (note | admonition)*, (floating-title | floating-section-title)?, clause, (floating-title | floating-section-title)?, 
+    (term-clause | terms)?, (floating-title | floating-section-title)?, definitions?, (floating-title | floating-section-title)?,
+    (clause | term-clause | terms | floating-title | floating-section-title)+
+  } 
+
+}
+
+# end overrides
+
+floating-section-title =
+  element section-title {
+    attribute id { xsd:ID },
+    attribute depth { xsd:int },
+    TextElement*
+}
+
+
+AdmonitionType |= "commentary"
+
+coverimages = element coverimages { image+ }
+
+# We display the Normative References between scope and terms; but to keep the
+# grammar simple, we keep the references together
+bsi-standard = 
+  element bsi-standard {
+attribute version { text },
+  attribute type { "semantic" | "presentation" },
+    bibdata, termdocsource*, misccontainer?, boilerplate?, preface, sections+, annex*, bibliography, indexsect*
+  }
+

@@ -26,6 +26,9 @@ module Rng
     attribute :list, List
     attribute :notAllowed, NotAllowed
     attribute :attribute, Attribute
+    attribute :documentation, :string
+    attribute :foreign_attributes, ForeignAttribute, collection: true
+    attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
       root "attribute", ordered: true
@@ -35,11 +38,11 @@ module Rng
       map_attribute "name", to: :attr_name
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "id", to: :id
       map_element "ref", to: :ref
@@ -51,9 +54,9 @@ module Rng
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
       map_element "anyName", to: :anyName
-      map_element "text", to: :text, value_map: {
+      map_element "text", to: :text, render_empty: :as_blank, render_default: true, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil }
+        to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_element "empty", to: :empty
       map_element "value", to: :value
@@ -62,6 +65,9 @@ module Rng
       map_element "notAllowed", to: :notAllowed
       map_element "attribute", to: :attribute
       map_element "nsName", to: :ns_name
+      map_element "documentation", to: :documentation,
+                                   namespace: "http://relaxng.org/ns/compatibility/annotations/1.0",
+                                   prefix: "a"
     end
   end
 end

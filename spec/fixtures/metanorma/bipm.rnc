@@ -1,0 +1,148 @@
+# Currently we inherit from a namespaced grammar, isostandard. Until we inherit from isodoc,
+# we cannot have a new default namespace: we will end up with a grammar with two different
+# namespaces, one for isostandard and one for csand additions. And we do not want that.
+
+include "isodoc.rnc" {
+
+start = bipm-standard
+
+xref =
+  element xref {
+     attribute target { xsd:string { pattern = "\i\c*|\c+#\c+" }},
+     attribute to { xsd:string { pattern = "\i\c*|\c+#\c+" }}?,
+     attribute type { ReferenceFormat }?,
+     attribute alt { text }?,
+     attribute case { "capital" | "lowercase" }?,
+     attribute droploc { xsd:boolean }?,
+     attribute pagenumber { xsd:boolean }?,
+     attribute nosee { xsd:boolean }?,
+     attribute nopage { xsd:boolean }?,
+     XrefBody
+}
+
+Clause-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute type { text }?,
+    attribute unnumbered  { xsd:boolean }?,
+    section-title?,
+    (
+      ( (  BasicBlock* ) | amend ),
+       (clause-subsection | terms | definitions | floating-title )*
+    )
+
+Annex-Section =
+    attribute id { xsd:ID }?,
+    attribute language { text }?,
+    attribute script { text }?,
+    attribute inline-header { xsd:boolean }?,
+    attribute obligation { "normative" | "informative" }?,
+    attribute unnumbered  { xsd:boolean }?,
+    section-title?,
+    (
+      ( BasicBlock* ),
+       (annex-subsection | terms | definitions | references | floating-title )*
+    )
+
+ol =
+  element ol {
+    attribute id { xsd:ID },
+    attribute keep-with-next { xsd:boolean }?,
+    attribute keep-lines-together { xsd:boolean }?,
+    attribute tag { text }?,
+    attribute multilingual-rendering { MultilingualRenderingType }?,
+    attribute type { ( "roman" | "alphabet" | "arabic" |
+                       "roman_upper" | "alphabet_upper" ) },
+    attribute start { text }?,
+    li+, note*
+}
+
+DocumentType =
+"brochure" |
+"mise-en-pratique" |
+"rapport" |
+"monographie" |
+"guide" |
+"meeting-report" |
+"technical-report" |
+"working-party-note" |
+"strategy" |
+"cipm-mra" |
+"resolution" 
+
+editorialgroup = element editorialgroup {
+  committee+,
+  workgroup*
+}
+
+structuredidentifier = element structuredidentifier {
+  element docnumber { text },
+  element part { text }?,
+  element appendix { text }?
+}
+
+BibDataExtensionType =
+    doctype?, docsubtype?, editorialgroup, comment-period?, si-aspect?, meeting-note?, structuredidentifier
+}
+
+comment-period = element comment-period {
+element from { ISO8601Date },
+element to { ISO8601Date }
+}
+
+si-aspect = element si-aspect {
+"A_e_deltanu" |
+"A_e" |
+"cd_Kcd_h_deltanu" |
+"cd_Kcd" |
+"full" |
+"K_k_deltanu" |
+"K_k" |
+"kg_h_c_deltanu" |
+"kg_h" |
+"m_c_deltanu" |
+"m_c" |
+"mol_NA" |
+"s_deltanu" 
+}
+
+committee = element committee { 
+  attribute acronym { 
+"CGPM" |
+"CIPM" |
+"BIPM" |
+"CCAUV" |
+"CCEM" |
+"CCL" |
+"CCM" |
+"CCPR" |
+"CCQM" |
+"CCRI" |
+"CCT" |
+"CCTF" |
+"CCU" |
+"CCL-CCTF-WGFS" |
+"JCGM" |
+"JCRB" |
+"JCTLM" |
+"INetQI" },
+  LocalizedString
+}
+
+workgroup = element workgroup { 
+  attribute acronym { text }?,
+  text
+}
+
+meeting-note = element meeting-note { text }
+
+bipm-standard =
+  element bipm-standard {
+attribute version { text },
+  attribute type { "semantic" | "presentation" },
+    bibdata, termdocsource*, misccontainer?, boilerplate?, preface?, sections+, annex*, bibliography?, indexsect*
+ }
+
