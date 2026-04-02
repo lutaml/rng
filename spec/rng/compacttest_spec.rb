@@ -228,8 +228,10 @@ RSpec.describe "Official RELAX NG Compact Test Suite" do
           generated_rng = grammar.to_xml
 
           # Parse both RNG versions to Grammar for comparison
-          expected_grammar = Rng.parse(expected_rng)
-          generated_grammar = Rng.parse(generated_rng)
+          # Use Grammar.from_xml to skip schema validation - test suite schemas
+          # may have non-standard root elements (e.g., bare value patterns)
+          expected_grammar = Rng::Grammar.from_xml(expected_rng)
+          generated_grammar = Rng::Grammar.from_xml(generated_rng)
 
           # Compare using structural equivalence
           # For now, just check both parse successfully

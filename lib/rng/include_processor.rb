@@ -31,6 +31,14 @@ module Rng
     def parse_file(file_path, base_dir = nil, visited_files = Set.new)
       tree = parse_file_to_tree(file_path, base_dir, visited_files)
 
+      # Process raw_grammar/raw_override/raw_patterns first (before include resolution)
+      # The include processor needs parsed content in the tree
+      process_raw_nodes!(tree)
+
+      # Process any includes in the tree (top-level or grammar-level)
+      process_includes(tree, base_dir || File.dirname(File.expand_path(file_path)),
+                       visited_files)
+
       # Extract namespace from wrapper level if present
       namespace = tree[:namespace]
 
@@ -130,7 +138,7 @@ module Rng
       # Process each top-level include
       tree[:top_includes].each do |include_item|
         href = extract_string_literal(include_item[:href])
-        override = include_item[:override]
+        override = parse_override(include_item[:override])
 
         # Resolve file path relative to base_dir
         included_file_path = base_dir ? File.join(base_dir, href) : href
@@ -138,6 +146,9 @@ module Rng
         # Parse included file recursively
         included_tree = parse_file_to_tree(included_file_path, base_dir,
                                            visited_files.dup)
+
+        # Process raw grammar/override/patterns before extracting
+        process_raw_nodes!(included_tree)
 
         # Extract grammar from included tree
         included_grammar = extract_grammar_tree(included_tree)
@@ -162,6 +173,11 @@ module Rng
           grammar_tree[:definitions]
       end
 
+      # Process raw_trailing if present (named patterns after includes)
+      if tree[:raw_trailing]
+        process_raw_trailing!(tree, grammar_tree)
+      end
+
       # Clean up - remove top_includes key as it's been processed
       tree.delete(:top_includes)
     end
@@ -175,7 +191,7 @@ module Rng
     def process_single_include(grammar_tree, include_item, base_dir,
 visited_files)
       href = extract_string_literal(include_item[:href])
-      override = include_item[:override]
+      override = parse_override(include_item[:override])
 
       # Resolve file path relative to base_dir
       included_file_path = base_dir ? File.join(base_dir, href) : href
@@ -183,6 +199,9 @@ visited_files)
       # Parse included file recursively
       included_tree = parse_file_to_tree(included_file_path, base_dir,
                                          visited_files.dup)
+
+      # Process raw grammar/override/patterns before extracting
+      process_raw_nodes!(included_tree)
 
       # Extract grammar from included tree
       included_grammar = extract_grammar_tree(included_tree)
@@ -210,6 +229,45 @@ visited_files)
         tree[:inner_grammar]
       else
         tree
+      end
+    end
+
+    # Process raw_grammar/raw_override/raw_patterns nodes in-place
+    #
+    # This is needed when included files contain grammar blocks or
+    # overrides that are captured as raw text by the parser.
+    #
+    # @param tree [Hash] Parse tree to process in-place
+    def process_raw_nodes!(tree)
+      ParseTreeProcessor.new(tree).send(:process_raw_overrides!, tree)
+    end
+
+    # Process raw_trailing content (named patterns after top-level includes)
+    #
+    # For schemas like ietf.rnc where include directives are followed by
+    # named pattern definitions, the trailing content is captured as raw_trailing.
+    # This method parses that content and adds definitions to grammar_tree.
+    #
+    # @param tree [Hash] Parse tree containing raw_trailing
+    # @param grammar_tree [Hash] Grammar tree to merge definitions into
+    def process_raw_trailing!(tree, grammar_tree)
+      raw = tree[:raw_trailing]
+      return unless raw
+
+      text = raw.is_a?(Array) ? raw.map { |r| r.respond_to?(:str) ? r.str : r.to_s }.join : (raw.respond_to?(:str) ? raw.str : raw.to_s)
+      return if text.strip.empty?
+
+      # Parse raw_trailing as a grammar (which handles named patterns)
+      parser = Rng::RncParser.new
+      begin
+        parsed = parser.grammar.parse(text.strip)
+        patterns = parsed[:patterns] || []
+        grammar_tree[:definitions] ||= []
+        grammar_tree[:definitions].concat(patterns)
+      rescue Parslet::ParseFailed => e
+        warn "Warning: Failed to parse trailing content: #{e.message}" if ENV['RNG_VERBOSE']
+      ensure
+        tree.delete(:raw_trailing)
       end
     end
 
@@ -302,6 +360,34 @@ visited_files)
       RncParser.extract_string(obj)
     end
 
+    # Parse raw override string into structured override hash
+    #
+    # @param override [Hash, nil] Override hash potentially containing :raw_override
+    # @return [Hash, nil] Parsed override with :start and :definitions, or nil
+    def parse_override(override)
+      return nil unless override
+      return override unless override[:raw_override]
+
+      raw = extract_string(override[:raw_override])
+      return nil if raw.nil? || raw.strip.empty?
+
+      # Parse the raw override content as RNC directly (top-level style)
+      parser = RncParser.new
+      begin
+        parsed = parser.parse(raw.strip)
+        # Normalize the parsed override
+        processor = ParseTreeProcessor.new(parsed)
+        normalized = processor.normalize
+        tree = normalized.grammar_tree
+        result = {}
+        result[:start] = tree[:start] if tree[:start]
+        result[:definitions] = tree[:definitions] if tree[:definitions] && !tree[:definitions].empty?
+        result.empty? ? nil : result
+      rescue Parslet::ParseFailed
+        nil
+      end
+    end
+
     # Helper method to extract string literal with concatenations
     #
     # @param lit [Hash] String literal with :string_parts and :concatenations
@@ -344,7 +430,7 @@ visited_files)
           hex_str = hex_str.str if hex_str.respond_to?(:str)
           [hex_str.to_i(16)].pack("U")
         elsif part[:char_escape]
-          # Handle \", \\, \n, \r, \t
+          # Handle \", \\, \n, \r, \t, and RELAX NG class escapes \i, \c, \d, \w
           char = part[:char_escape][:char]
           char = char.str if char.respond_to?(:str)
           case char
@@ -353,8 +439,17 @@ visited_files)
           when "n" then "\n"
           when "r" then "\r"
           when "t" then "\t"
+          when "i" then "\\i"
+          when "c" then "\\c"
+          when "d" then "\\d"
+          when "w" then "\\w"
           else char
           end
+        elsif part[:char]
+          # Regular character (plain char in string literal)
+          c = part[:char]
+          c = c.str if c.respond_to?(:str)
+          c.to_s
         else
           part.to_s
         end

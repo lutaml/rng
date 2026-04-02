@@ -6,9 +6,10 @@ module Rng
     attribute :ns, :string
     attribute :datatypeLibrary, :string
     attribute :href, :string
+    attribute :base, Lutaml::Xml::W3c::XmlBaseType
 
     xml do
-      root "externalRef"
+      element "externalRef"
       namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
@@ -21,6 +22,7 @@ module Rng
         to: { empty: :empty, omitted: :omitted, nil: :nil },
       }
       map_attribute "href", to: :href
+      w3c_attributes :base
     end
   end
 end

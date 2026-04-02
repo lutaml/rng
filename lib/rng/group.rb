@@ -22,6 +22,7 @@ module Rng
     attribute :data, Data, collection: true, initialize_empty: true
     attribute :list, List, collection: true, initialize_empty: true
     attribute :notAllowed, NotAllowed, collection: true, initialize_empty: true
+    attribute :base, Lutaml::Xml::W3c::XmlBaseType
 
     xml do
       element "group"
@@ -30,6 +31,7 @@ module Rng
       namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id
+      w3c_attributes :base
       map_attribute "ns", to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
         to: { empty: :empty, omitted: :omitted, nil: :nil },
@@ -48,8 +50,7 @@ module Rng
       map_element "optional", to: :optional
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
-      map_element "text", to: :text, render_empty: :as_blank,
-                          render_default: true
+      map_element "text", to: :text
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data

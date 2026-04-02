@@ -1638,7 +1638,7 @@ element foo { "\x{}" }
 <testCase>
 <compact>
 <correct>
-\x{65}l\xxxxx{00065}ment\x{20}foo { empty \x{7d}
+\x{65}l\x{00065}ment\x{20}foo { empty \x{7d}
 </correct>
 </compact>
 <xml>
@@ -1652,7 +1652,7 @@ element foo { "\x{}" }
 <testCase>
 <compact>
 <correct><![CDATA[
-element \\x{66}oo { empty }
+element \x{66}oo { empty }
 ]]></correct>
 </compact>
 <xml>

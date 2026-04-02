@@ -11,7 +11,7 @@ module Rng
     attribute :elements, ForeignElement, collection: true
 
     xml do
-      root "element"
+      element "element"
       namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "name", to: :name

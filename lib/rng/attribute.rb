@@ -25,8 +25,6 @@ module Rng
     attribute :notAllowed, NotAllowed
     attribute :attribute, Attribute
     attribute :documentation, Documentation
-    attribute :foreign_attributes, ForeignAttribute, collection: true
-    attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
       element "attribute"
@@ -54,7 +52,7 @@ module Rng
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
       map_element "anyName", to: :anyName
-      map_element "text", to: :text, render_empty: :as_blank, render_default: true, value_map: {
+      map_element "text", to: :text, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
         to: { empty: :empty, omitted: :omitted, nil: :nil },
       }

@@ -10,8 +10,6 @@ module Rng
     attribute :define, Define, collection: true, initialize_empty: true
     attribute :div, Div, collection: true, initialize_empty: true
     attribute :include, Include, collection: true, initialize_empty: true
-    attribute :foreign_attributes, ForeignAttribute, collection: true
-    attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
       element "div"

@@ -1,4 +1,6 @@
 # Stub file for reqt.rnc - minimal implementation for testing
+start = requirement
+
 requirement = element requirement { text }
 recommendation = element recommendation { text }
 permission = element permission { text }

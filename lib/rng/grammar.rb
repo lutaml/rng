@@ -10,6 +10,7 @@ module Rng
     attribute :define, Define, collection: true, initialize_empty: true
     attribute :element, Element, collection: true, initialize_empty: true
     attribute :include, Include, collection: true
+    attribute :div, Div, collection: true, initialize_empty: true
 
     xml do
       element "grammar"
@@ -31,6 +32,7 @@ module Rng
       map_element "define", to: :define
       map_element "element", to: :element
       map_element "include", to: :include
+      map_element "div", to: :div
     end
   end
 end
