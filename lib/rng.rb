@@ -37,17 +37,32 @@ module Rng
   autoload :Div, File.expand_path("rng/div", __dir__)
   autoload :Include, File.expand_path("rng/include", __dir__)
   autoload :Grammar, File.expand_path("rng/grammar", __dir__)
-  autoload :ForeignAttribute, File.expand_path("rng/foreign_attribute", __dir__)
-  autoload :ForeignElement, File.expand_path("rng/foreign_element", __dir__)
+  autoload :Documentation, File.expand_path("rng/documentation", __dir__)
+  autoload :TestSuiteParser, File.expand_path("rng/test_suite_parser", __dir__)
+  autoload :Value, File.expand_path("rng/value", __dir__)
+
+  # Autoload parser support classes
+  autoload :ParseTreeProcessor, File.expand_path("rng/parse_tree_processor", __dir__)
+  autoload :RncToRngConverter, File.expand_path("rng/rnc_to_rng_converter", __dir__)
+  autoload :SchemaPreamble, File.expand_path("rng/schema_preamble", __dir__)
+  autoload :NamespaceDeclaration, File.expand_path("rng/namespace_declaration", __dir__)
+  autoload :DatatypeDeclaration, File.expand_path("rng/datatype_declaration", __dir__)
+
+  # Schema validation
+  autoload :SchemaValidator, File.expand_path("rng/schema_validator", __dir__)
+  autoload :SchemaValidationError, File.expand_path("rng/schema_validator", __dir__)
 
   # Autoload parsers and builders
   autoload :RncParser, File.expand_path("rng/rnc_parser", __dir__)
   autoload :ParseRnc, File.expand_path("rng/parse_rnc", __dir__)
   autoload :ToRnc, File.expand_path("rng/to_rnc", __dir__)
+  autoload :RncBuilder, File.expand_path("rng/rnc_builder", __dir__)
+  autoload :IncludeProcessor, File.expand_path("rng/include_processor", __dir__)
 
   module_function
 
-  def parse(rng, location: nil, nested_schema: false)
+  def parse(rng, location: nil, nested_schema: false, validate: false)
+    SchemaValidator.validate(rng) if validate && !nested_schema
     Grammar.from_xml(rng)
   end
 

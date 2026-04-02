@@ -8,7 +8,7 @@ module Rng
     attribute :grammar, Grammar
 
     xml do
-      root "include"
+      element "include"
 
       map_attribute "href", to: :href
       map_attribute "ns", to: :ns, value_map: {

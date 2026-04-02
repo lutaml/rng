@@ -10,6 +10,8 @@ module Rng
 
     xml do
       element "anyName"
+      namespace ::Rng::Namespaces::RngNamespace
+
       ordered
 
       map_attribute "name", to: :name

@@ -64,6 +64,9 @@ module Rng
       items = [items] unless items.is_a?(Array)
 
       items.each do |item|
+        # Skip non-Hash items (e.g., Parslet::Slice from annotation content)
+        next unless item.is_a?(Hash)
+
         if item[:default_ns] || item[:default_prefixed_ns] || item[:prefixed_ns]
           process_namespace_declaration(preamble, item)
         elsif item[:prefix] && item[:uri]
@@ -182,6 +185,8 @@ module Rng
     #
     # @param node [Hash] Node that may contain :annotations
     # @return [Hash] Hash with :attributes and :elements arrays
+    RNG_NAMESPACE = "http://relaxng.org/ns/structure/1.0"
+
     def extract_annotations(node)
       result = { attributes: [], elements: [] }
       return result unless node.is_a?(Hash) && node[:annotations]
@@ -203,6 +208,9 @@ module Rng
         end
       end
 
+      # Track seen attribute names for duplicate detection (TC 11-12)
+      seen_attrs = {}
+
       # Process each annotation
       annotations.each do |ann|
         next unless ann.is_a?(Hash) && ann[:ann_name]
@@ -212,6 +220,27 @@ module Rng
         if ann[:attr_value]
           # Foreign attribute
           value = extract_string_literal(ann[:attr_value])
+
+          # TC 11-12: Check for duplicate annotation attributes
+          attr_key = "#{name_parts[:prefix]}:#{name_parts[:local]}"
+          if seen_attrs.key?(attr_key)
+            raise StandardError, "duplicate annotation attribute '#{attr_key}'"
+          end
+          seen_attrs[attr_key] = true
+
+          # TC 18: xmlns attribute is forbidden in annotations
+          if name_parts[:local] == "xmlns" && name_parts[:prefix].nil?
+            raise StandardError, "xmlns attribute is not allowed in annotations"
+          end
+
+          # TC 70-71: RNG namespace attributes forbidden
+          if name_parts[:prefix] && @namespace_prefixes
+            ns_uri = @namespace_prefixes[name_parts[:prefix]]
+            if ns_uri == RNG_NAMESPACE
+              raise StandardError, "attributes in the RELAX NG namespace are not allowed"
+            end
+          end
+
           result[:attributes] << {
             name: name_parts[:local],
             namespace: name_parts[:prefix],
@@ -220,6 +249,15 @@ module Rng
         elsif ann.key?(:elem_content)
           # Foreign element
           content_data = extract_annotation_content(ann[:elem_content])
+
+          # TC 70-71: RNG namespace elements forbidden
+          if name_parts[:prefix] && @namespace_prefixes
+            ns_uri = @namespace_prefixes[name_parts[:prefix]]
+            if ns_uri == RNG_NAMESPACE
+              raise StandardError, "elements in the RELAX NG namespace are not allowed"
+            end
+          end
+
           result[:elements] << {
             name: name_parts[:local],
             namespace: name_parts[:prefix],
@@ -311,7 +349,7 @@ module Rng
           hex_str = extract_parslet_string(part[:hex_escape][:hex])
           [hex_str.to_i(16)].pack("U")
         elsif part[:char_escape]
-          # Handle \", \\, \n, \r, \t
+          # Handle \", \\, \n, \r, \t, and RELAX NG class escapes \i, \c, \d, \w
           char = extract_parslet_string(part[:char_escape][:char])
           case char
           when '"' then '"'
@@ -319,8 +357,15 @@ module Rng
           when "n" then "\n"
           when "r" then "\r"
           when "t" then "\t"
+          when "i" then "\\i"
+          when "c" then "\\c"
+          when "d" then "\\d"
+          when "w" then "\\w"
           else char
           end
+        elsif part[:char]
+          # Regular character (plain char in string literal)
+          extract_parslet_string(part[:char])
         else
           part.to_s
         end
@@ -502,17 +547,23 @@ module Rng
       raw = node[:raw_grammar]
       text = extract_raw_text(raw)
 
+      # Remove raw_grammar first
+      node.delete(:raw_grammar)
+
       if text.strip.empty?
         # Empty grammar - use empty structure
-        node[:inner_grammar] = { start: nil, includes: [], patterns: [] }
+        node.merge!(start: nil, includes: [], patterns: [])
       else
         # Parse with proper scoping
         parsed = parse_grammar_with_scope(text)
-        node[:inner_grammar] = parsed
+        # If the node is already an inner_grammar (has raw_grammar as its only key),
+        # merge parsed result directly into the node instead of nesting
+        if node.empty?
+          node.merge!(parsed)
+        else
+          node[:inner_grammar] = parsed
+        end
       end
-
-      # Remove raw_grammar after processing
-      node.delete(:raw_grammar)
     end
 
     # Parse override content with proper scoping
@@ -639,6 +690,10 @@ module Rng
         if @preamble.default_namespace
           @grammar_tree[:default_namespace] =
             @preamble.default_namespace
+          # Also set legacy namespace format for converter
+          @grammar_tree[:namespace] = {
+            namespace_uri: @preamble.default_namespace,
+          }
         end
         unless @preamble.namespace_map.empty?
           @grammar_tree[:namespace_map] =

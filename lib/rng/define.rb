@@ -7,29 +7,28 @@ module Rng
     attribute :id, :string
     attribute :ns, :string
     attribute :datatypeLibrary, :string
-    attribute :ref, Ref
+    attribute :ref, Ref, collection: true
     attribute :element, Element, collection: true
-    attribute :choice, Choice
-    attribute :group, Group
-    attribute :interleave, Interleave
-    attribute :mixed, Mixed
-    attribute :optional, Optional
-    attribute :zeroOrMore, ZeroOrMore
-    attribute :oneOrMore, OneOrMore
-    attribute :text, Text
-    attribute :empty, Empty
-    attribute :value, Value
-    attribute :data, Data
-    attribute :list, List
-    attribute :notAllowed, NotAllowed
-    attribute :attribute, Attribute
-    attribute :grammar, Grammar
-    attribute :documentation, Documentation
-    attribute :foreign_attributes, ForeignAttribute, collection: true
-    attribute :foreign_elements, ForeignElement, collection: true
+    attribute :choice, Choice, collection: true
+    attribute :group, Group, collection: true
+    attribute :interleave, Interleave, collection: true
+    attribute :mixed, Mixed, collection: true
+    attribute :optional, Optional, collection: true
+    attribute :zeroOrMore, ZeroOrMore, collection: true
+    attribute :oneOrMore, OneOrMore, collection: true
+    attribute :text, Text, collection: true
+    attribute :empty, Empty, collection: true
+    attribute :value, Value, collection: true
+    attribute :data, Data, collection: true
+    attribute :list, List, collection: true
+    attribute :notAllowed, NotAllowed, collection: true
+    attribute :attribute, Attribute, collection: true
+    attribute :grammar, Grammar, collection: true
+    attribute :documentation, Documentation, collection: true
 
     xml do
       element "define"
+      namespace ::Rng::Namespaces::RngNamespace
       ordered
 
       map_attribute "name", to: :name
@@ -52,8 +51,7 @@ module Rng
       map_element "optional", to: :optional
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
-      map_element "text", to: :text, render_empty: :as_blank,
-                          render_default: true
+      map_element "text", to: :text
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data

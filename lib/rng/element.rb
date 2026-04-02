@@ -8,14 +8,14 @@ module Rng
     attribute :ns_name, NsName
     attribute :datatypeLibrary, :string
     attribute :id, :string
-    attribute :attribute, Attribute
+    attribute :attribute, Attribute, collection: true
     attribute :ref, Ref, collection: true
-    attribute :choice, Choice
-    attribute :group, Group
-    attribute :interleave, Interleave
-    attribute :mixed, Mixed
-    attribute :optional, Optional
-    attribute :zeroOrMore, ZeroOrMore
+    attribute :choice, Choice, collection: true, initialize_empty: true
+    attribute :group, Group, collection: true, initialize_empty: true
+    attribute :interleave, Interleave, collection: true, initialize_empty: true
+    attribute :mixed, Mixed, collection: true, initialize_empty: true
+    attribute :optional, Optional, collection: true, initialize_empty: true
+    attribute :zeroOrMore, ZeroOrMore, collection: true, initialize_empty: true
     attribute :oneOrMore, OneOrMore, collection: true
     attribute :anyName, AnyName
     attribute :text, Text
@@ -29,8 +29,6 @@ module Rng
     attribute :parent_ref, ParentRef
     attribute :external_ref, ExternalRef
     attribute :documentation, Documentation
-    attribute :foreign_attributes, ForeignAttribute, collection: true
-    attribute :foreign_elements, ForeignElement, collection: true
 
     xml do
       element "element"
@@ -60,8 +58,7 @@ module Rng
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
       map_element "anyName", to: :anyName
-      map_element "text", to: :text, render_empty: :as_blank,
-                          render_default: true
+      map_element "text", to: :text
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data

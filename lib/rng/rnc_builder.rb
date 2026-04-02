@@ -67,7 +67,52 @@ module Rng
         end
       end
 
+      # Process div elements (grouping containers)
+      if schema.div && !schema.div.empty?
+        schema.div.each do |div|
+          div_content = build_div(div)
+          result << div_content
+          result << ""
+        end
+      end
+
       result.join("\n")
+    end
+
+    # Build RNC syntax for a div grouping construct
+    #
+    # @param div [Rng::Div] The div to convert
+    # @return [String] RNC div syntax
+    def build_div(div)
+      result = "div {"
+      parts = []
+
+      # Process divs within div
+      if div.div && !div.div.empty?
+        div.div.each do |nested_div|
+          parts << build_div(nested_div)
+        end
+      end
+
+      # Process start within div
+      if div.start && !div.start.empty?
+        div.start.each do |start|
+          parts << "start = #{build_pattern(start)}"
+        end
+      end
+
+      # Process defines within div
+      if div.define && !div.define.empty?
+        div.define.each do |define|
+          parts << "#{define.name} = #{build_pattern(define)}"
+        end
+      end
+
+      if parts.empty?
+        result + " }"
+      else
+        result + "\n  " + parts.join("\n  ") + "\n}"
+      end
     end
 
     private
@@ -114,9 +159,9 @@ module Rng
                                     end
                        # Handle Parslet::Slice (has position info like "doc"@16)
                        extract_string(identifier)
-                     elsif element.name.is_a?(Name)
-                       # Name object - extract the value
-                       element.name.value || ""
+                     elsif element.anyName || element.nsName ||
+                           (element.name.is_a?(Name) && element.name.value)
+                       build_name_class(element)
                      else
                        ""
                      end
@@ -170,14 +215,20 @@ module Rng
 
       # Process mixed content
       if node.mixed
-        mixed_inner = build_mixed_content(node.mixed)
-        content_parts << "mixed {\n  #{mixed_inner}\n}"
+        mixed_items = node.mixed.is_a?(Array) ? node.mixed : [node.mixed]
+        mixed_items.each do |m|
+          mixed_inner = build_mixed_content(m)
+          content_parts << "mixed {\n  #{mixed_inner}\n}"
+        end
       end
-
-      content_parts << build_pattern(node.choice) if node.choice && !(node.choice.is_a?(Array) && node.choice.empty?)
-
-      content_parts << build_pattern(node.group) if node.group && !(node.group.is_a?(Array) && node.group.empty?)
-
+      if node.choice && !(node.choice.is_a?(Array) && node.choice.empty?)
+        choices = node.choice.is_a?(Array) ? node.choice : [node.choice]
+        choices.each { |c| content_parts << build_pattern(c) }
+      end
+      if node.group && !(node.group.is_a?(Array) && node.group.empty?)
+        groups = node.group.is_a?(Array) ? node.group : [node.group]
+        groups.each { |g| content_parts << build_pattern(g) }
+      end
       # Process ref
       if node.ref && !node.ref.empty?
         if node.ref.is_a?(Array)
@@ -211,7 +262,52 @@ module Rng
         end
       end
 
-      content_parts.join(",\n  ")
+      # Process zeroOrMore
+      if node.zeroOrMore
+        if node.zeroOrMore.is_a?(Array)
+          node.zeroOrMore.each do |pattern|
+            content_parts << build_pattern(pattern)
+          end
+        else
+          content_parts << build_pattern(node.zeroOrMore)
+        end
+      end
+
+      # Process interleave
+      if node.interleave && !(node.interleave.is_a?(Array) && node.interleave.empty?)
+        interleaves = node.interleave.is_a?(Array) ? node.interleave : [node.interleave]
+        interleaves.each do |il|
+          content_parts << build_interleave(il)
+        end
+      end
+
+      # Process data
+      if node.data
+        content_parts << build_data(node.data)
+      end
+
+      # Process list
+      if node.list
+        content_parts << build_list(node.list)
+      end
+
+      # Process notAllowed
+      if node.notAllowed
+        content_parts << "notAllowed"
+      end
+
+      parts = content_parts.reject(&:empty?)
+      if parts.length > 1
+        # Wrap choice/interleave in parentheses when part of a sequence
+        parts.map! do |p|
+          if p.include?(" | ") || p.include?(" & ")
+            "(#{p})"
+          else
+            p
+          end
+        end
+      end
+      parts.join(",\n  ")
     end
 
     # Build RNC syntax for mixed content
@@ -266,9 +362,9 @@ module Rng
       end
 
       content_parts << "text" if mixed.text && !mixed.text.empty?
-      content_parts << "empty" if mixed.empty & !mixed.empty.empty?
+      content_parts << "empty" if mixed.empty && !mixed.empty.empty?
 
-      content_parts.join(",\n  ")
+      content_parts.reject(&:empty?).join(",\n  ")
     end
 
     # Build RNC syntax for an attribute
@@ -304,9 +400,9 @@ module Rng
                                  end
                     # Handle Parslet::Slice (has position info like "doc"@16)
                     extract_string(identifier)
-                  elsif attr.name.is_a?(Name)
-                    # Name object - extract the value
-                    attr.name.value || ""
+                  elsif attr.anyName || attr.nsName ||
+                        (attr.name.is_a?(Name) && attr.name.value)
+                    build_name_class(attr)
                   else
                     ""
                   end
@@ -364,36 +460,45 @@ module Rng
       # Handle Define objects by extracting their pattern content
       if node.is_a?(Define)
         # Define is a container, extract actual pattern content
-        # Check in likely order of occurrence
-        if node.group && !(node.group.is_a?(Array) && node.group.empty?)
-          return build_pattern(node.group)
-        elsif node.element && !(node.element.is_a?(Array) && node.element.empty?)
-          if node.element.is_a?(Array)
-            return node.element.map do |elem|
-              build_element(elem)
-            end.join(", ")
+        # All pattern attributes are collections
+        if node.group && !node.group.empty?
+          return node.group.map { |g| build_pattern(g) }.join(", ")
+        elsif node.element && !node.element.empty?
+          return node.element.map { |elem| build_element(elem) }.join(", ")
+        elsif node.choice && !node.choice.empty?
+          return node.choice.map { |c| build_pattern(c) }.join(" | ")
+        elsif node.ref && !node.ref.empty?
+          return node.ref.map(&:name).join(" | ")
+        elsif node.optional && !node.optional.empty?
+          return node.optional.map { |o| build_pattern(o) }.join(", ")
+        elsif node.zeroOrMore && !node.zeroOrMore.empty?
+          return node.zeroOrMore.map { |z| build_pattern(z) }.join(", ")
+        elsif node.oneOrMore && !node.oneOrMore.empty?
+          return node.oneOrMore.map { |o| build_pattern(o) }.join(", ")
+        elsif node.interleave && !node.interleave.empty?
+          return node.interleave.map { |i| build_pattern(i) }.join(" & ")
+        elsif node.text && !node.text.empty?
+          return "text"
+        elsif node.empty && !node.empty.empty?
+          return "empty"
+        elsif node.value && !node.value.empty?
+          values = node.value.map do |v|
+            v.is_a?(Value) ? "\"#{v.value}\"" : "\"#{v}\""
           end
-
-          return build_element(node.element)
-
-        elsif node.choice && !(node.choice.is_a?(Array) && node.choice.empty?)
-          if node.choice.is_a?(Array)
-            return node.choice.map do |choice|
-              build_pattern(choice)
-            end.join(" | ")
-          end
-
-          return build_pattern(node.choice)
-
-        elsif node.ref && !(node.ref.is_a?(Array) && node.ref.empty?)
-          return node.ref.map(&:name).join(" | ") if node.ref.is_a?(Array)
-
-          return node.ref.name
-
+          return values.join(", ")
+        elsif node.data && !node.data.empty?
+          return node.data.map { |d| build_data(d) }.join(", ")
+        elsif node.attribute && !node.attribute.empty?
+          return node.attribute.map { |a| build_attribute(a) }.join(", ")
+        elsif node.list && !node.list.empty?
+          return node.list.map { |l| build_list(l) }.join(", ")
+        elsif node.mixed && !node.mixed.empty?
+          return node.mixed.map { |m| build_mixed(m) }.join(", ")
+        elsif node.notAllowed && !node.notAllowed.empty?
+          return "notAllowed"
+        elsif node.grammar && !node.grammar.empty?
+          return node.grammar.map { |g| build(g) }.join(", ")
         end
-
-        # If no content found, return empty
-        return ""
       end
 
       # Handle OneOrMore, ZeroOrMore, and Optional wrapper objects
@@ -431,6 +536,31 @@ module Rng
 
           return "#{node.ref.name}#{occurrence}"
 
+        elsif node.attribute && !(node.attribute.is_a?(Array) && node.attribute.empty?)
+          # Handle attribute content inside wrapper (e.g., attribute acronym { text }?)
+          attr_parts = node.attribute.is_a?(Array) ?
+            node.attribute.map { |a| build_attribute(a) } :
+            [build_attribute(node.attribute)]
+          inner = attr_parts.join(", ")
+          return "#{inner}#{occurrence}"
+        elsif node.text && !(node.text.is_a?(Array) && node.text.empty?)
+          # Handle text inside wrapper
+          return "text#{occurrence}"
+        elsif node.optional && !(node.optional.is_a?(Array) && node.optional.empty?)
+          inner = node.optional.is_a?(Array) ?
+            node.optional.map { |o| build_pattern(o) }.join(", ") :
+            build_pattern(node.optional)
+          return "(#{inner})#{occurrence}"
+        elsif node.zeroOrMore && !(node.zeroOrMore.is_a?(Array) && node.zeroOrMore.empty?)
+          inner = node.zeroOrMore.is_a?(Array) ?
+            node.zeroOrMore.map { |z| build_pattern(z) }.join(", ") :
+            build_pattern(node.zeroOrMore)
+          return "(#{inner})#{occurrence}"
+        elsif node.oneOrMore && !(node.oneOrMore.is_a?(Array) && node.oneOrMore.empty?)
+          inner = node.oneOrMore.is_a?(Array) ?
+            node.oneOrMore.map { |o| build_pattern(o) }.join(", ") :
+            build_pattern(node.oneOrMore)
+          return "(#{inner})#{occurrence}"
         end
       end
 
@@ -450,24 +580,40 @@ module Rng
         else
           build_element(node.element)
         end
-      elsif node.choice && !(node.choice.is_a?(Array) & node.choice.empty?)
-        choice_parts = []
-        if node.choice.is_a?(Array)
-          node.choice.each do |choice|
-            choice_parts << build_pattern(choice)
-          end
-        else
-          choice_parts << build_pattern(node.choice)
-        end
-        choice_parts.join(" | ")
-      elsif node.group && !(node.group.is_a?(Array) & node.group.empty?)
+      elsif node.is_a?(Choice)
+        build_choice(node)
+      elsif node.is_a?(Group) || node.is_a?(Start)
+        # Handle Group and Start objects directly
+        # They are container types with pattern attributes
         group_parts = []
-        if node.group.is_a?(Array)
-          node.group.each do |group|
-            group_parts << build_pattern(group)
-          end
-        else
-          group_parts << build_pattern(node.group)
+        if node.group && !(node.group.is_a?(Array) && node.group.empty?)
+          group_parts = node.group.is_a?(Array) ?
+            node.group.map { |g| build_pattern(g) } :
+            [build_pattern(node.group)]
+        elsif node.choice && !(node.choice.is_a?(Array) && node.choice.empty?)
+          group_parts = node.choice.is_a?(Array) ?
+            node.choice.map { |c| build_pattern(c) } :
+            [build_pattern(node.choice)]
+        elsif node.element && !(node.element.is_a?(Array) && node.element.empty?)
+          group_parts = node.element.is_a?(Array) ?
+            node.element.map { |e| build_element(e) } :
+            [build_element(node.element)]
+        elsif node.ref && !(node.ref.is_a?(Array) && node.ref.empty?)
+          group_parts = node.ref.is_a?(Array) ?
+            node.ref.map(&:name) :
+            [node.ref.name]
+        elsif node.optional && !(node.optional.is_a?(Array) && node.optional.empty?)
+          group_parts = node.optional.is_a?(Array) ?
+            node.optional.map { |p| build_pattern(p) } :
+            [build_pattern(node.optional)]
+        elsif node.zeroOrMore && !(node.zeroOrMore.is_a?(Array) && node.zeroOrMore.empty?)
+          group_parts = node.zeroOrMore.is_a?(Array) ?
+            node.zeroOrMore.map { |p| build_pattern(p) } :
+            [build_pattern(node.zeroOrMore)]
+        elsif node.oneOrMore && !(node.oneOrMore.is_a?(Array) && node.oneOrMore.empty?)
+          group_parts = node.oneOrMore.is_a?(Array) ?
+            node.oneOrMore.map { |p| build_pattern(p) } :
+            [build_pattern(node.oneOrMore)]
         end
         "(#{group_parts.join(', ')})"
       elsif node.ref
@@ -503,6 +649,82 @@ module Rng
       end
     end
 
+    # Build RNC name class syntax for AnyName, NsName, Name objects
+    #
+    # @param node [Object] Element or Attribute with name class
+    # @return [String] RNC name class syntax
+    def build_name_class(node)
+      if node.anyName
+        result = "*"
+        if node.anyName.except
+          result += " - #{build_except(node.anyName.except)}"
+        end
+        result
+      elsif node.nsName
+        ns_uri = node.nsName.ns
+        # If ns is nil, use the default namespace from the grammar
+        if ns_uri.nil? && node.lutaml_root
+          ns_uri = node.lutaml_root.ns
+        end
+        # Output as namespace prefix if we have one, otherwise use literal URI
+        if ns_uri
+          # Look up the prefix for this URI from the grammar's namespace declarations
+          prefix = find_prefix_for_uri(node, ns_uri)
+          result = prefix ? "#{prefix}:*" : "\"#{ns_uri}\":*"
+        else
+          # No namespace info available - this shouldn't happen but be safe
+          result = "*"
+        end
+        if node.nsName.except
+          result += " - #{build_except(node.nsName.except)}"
+        end
+        result
+      elsif node.name.is_a?(Name) && node.name.value
+        node.name.value
+      else
+        ""
+      end
+    end
+
+    # Find the namespace prefix for a given URI
+    def find_prefix_for_uri(node, uri)
+      return nil unless node.lutaml_root
+
+      grammar = node.lutaml_root
+      # Check if the grammar has namespace declarations
+      if grammar.respond_to?(:namespace) && grammar.namespace
+        ns = grammar.namespace
+        if ns.is_a?(Array)
+          ns.each do |n|
+            return n.prefix if n.uri == uri
+          end
+        elsif ns.respond_to?(:uri) && ns.uri == uri
+          return ns.prefix
+        end
+      end
+      nil
+    end
+
+    # Build RNC except syntax
+    #
+    # @param except [Rng::Except] The except clause
+    # @return [String] RNC except syntax
+    def build_except(except)
+      items = []
+      except.name&.each { |n| items << n.value }
+      except.ns_name&.each do |ns|
+        name = ns.ns ? "#{ns.ns}:*" : "default:*"
+        items << name
+      end
+      except.choice&.each { |c| items << build_choice(c) }
+
+      if items.length == 1
+        items.first
+      else
+        "(#{items.join(' | ')})"
+      end
+    end
+
     # Extract clean string from Parslet::Slice or other objects
     #
     # @param obj [Object] The object to extract string from
@@ -518,6 +740,127 @@ module Rng
         # Fallback
         obj.to_s.sub(/@\d+$/, "")
       end
+    end
+
+    # Build a data pattern from a Data object
+    #
+    # @param data [Data] Data object
+    # @return [String] RNC data pattern
+    def build_data(data)
+      result = data.type.to_s
+      if data.param && !data.param.empty?
+        params = data.param.map { |p| "#{p.name} = \"#{p.value}\"" }
+        result += " { #{params.join(', ')} }"
+      end
+      result
+    end
+
+    # Build a list pattern from a List object
+    #
+    # @param list [List] List object
+    # @return [String] RNC list pattern
+    def build_list(list)
+      content_parts = collect_list_items(list)
+      content = content_parts.join(", ")
+      "list { #{content} }"
+    end
+
+    # Collect all pattern items from a List node
+    #
+    # @param list [List] List node
+    # @return [Array<String>] Array of pattern strings
+    def collect_list_items(list)
+      parts = []
+      list.element&.each { |e| parts << build_element(e) unless e.nil? }
+      list.attribute&.each { |a| parts << build_attribute(a) unless a.nil? }
+      list.ref&.each { |r| parts << r.name unless r.nil? }
+      list.text&.each { |_t| parts << "text" }
+      list.empty&.each { |_e| parts << "empty" }
+      list.value&.each { |v| parts << "\"#{v.value}\"" unless v.nil? }
+      list.data&.each { |d| parts << build_data(d) unless d.nil? }
+      list.notAllowed&.each { |_n| parts << "notAllowed" }
+      list.choice&.each { |c| parts << build_choice(c) unless c.nil? }
+      list.group&.each { |g| parts << "(#{build_pattern(g)})" unless g.nil? }
+      list.zeroOrMore&.each { |z| parts << build_pattern(z) unless z.nil? }
+      list.oneOrMore&.each { |o| parts << build_pattern(o) unless o.nil? }
+      list.optional&.each { |o| parts << build_pattern(o) unless o.nil? }
+      list.mixed&.each { |m| parts << build_mixed_content(m) unless m.nil? }
+      list.interleave&.each { |i| parts << build_interleave(i) unless i.nil? }
+      parts
+    end
+
+    # Build a choice pattern from a Choice object or array of Choices
+    #
+    # Collects all children (element, ref, value, text, empty, data, etc.)
+    # and builds each as a pattern, joined with " | ".
+    #
+    # @param choices [Choice, Array<Choice>] Choice object(s)
+    # @return [String] RNC choice pattern
+    def build_choice(choices)
+      items = choices.is_a?(Array) ? choices : [choices]
+      items.flat_map { |choice| collect_choice_items(choice) }.join(" | ")
+    end
+
+    # Build an interleave pattern from an Interleave object
+    #
+    # In RNC, interleave uses the & operator to separate child patterns.
+    #
+    # @param interleave [Interleave] Interleave object
+    # @return [String] RNC interleave pattern
+    def build_interleave(interleave)
+      parts = collect_interleave_items(interleave)
+      parts.join(" & ")
+    end
+
+    private
+
+    # Collect all pattern items from an Interleave node
+    #
+    # @param interleave [Interleave] Interleave node
+    # @return [Array<String>] Array of pattern strings
+    def collect_interleave_items(interleave)
+      parts = []
+      interleave.element&.each { |e| parts << build_element(e) unless e.nil? }
+      interleave.attribute&.each { |a| parts << build_attribute(a) unless a.nil? }
+      interleave.ref&.each { |r| parts << r.name unless r.nil? }
+      interleave.text&.each { |_t| parts << "text" }
+      interleave.empty&.each { |_e| parts << "empty" }
+      interleave.value&.each { |v| parts << "\"#{v.value}\"" unless v.nil? }
+      interleave.data&.each { |d| parts << build_data(d) unless d.nil? }
+      interleave.list&.each { |l| parts << build_list(l) unless l.nil? }
+      interleave.notAllowed&.each { |_n| parts << "notAllowed" }
+      interleave.choice&.each { |c| parts << build_choice(c) unless c.nil? }
+      interleave.group&.each { |g| parts << "(#{build_pattern(g)})" unless g.nil? }
+      interleave.zeroOrMore&.each { |z| parts << build_pattern(z) unless z.nil? }
+      interleave.oneOrMore&.each { |o| parts << build_pattern(o) unless o.nil? }
+      interleave.optional&.each { |o| parts << build_pattern(o) unless o.nil? }
+      interleave.mixed&.each { |m| parts << build_mixed_content(m) unless m.nil? }
+      interleave.interleave&.each { |i| parts << "(#{build_interleave(i)})" unless i.nil? }
+      parts
+    end
+
+    # Collect all pattern items from a single Choice node
+    #
+    # @param choice [Choice] Choice node
+    # @return [Array<String>] Array of pattern strings
+    def collect_choice_items(choice)
+      parts = []
+      choice.element&.each { |e| parts << build_element(e) }
+      choice.attribute&.each { |a| parts << build_attribute(a) }
+      choice.ref&.each { |r| parts << r.name }
+      choice.value&.each { |v| parts << "\"#{v.value}\"" }
+      choice.text&.each { |_t| parts << "text" }
+      choice.empty&.each { |_e| parts << "empty" }
+      choice.data&.each { |d| parts << build_data(d) }
+      choice.list&.each { |l| parts << build_list(l) }
+      choice.notAllowed&.each { |_n| parts << "notAllowed" }
+      choice.choice&.each { |c| parts << build_choice(c) }
+      choice.group&.each { |g| parts << "(#{build_pattern(g)})" }
+      choice.zeroOrMore&.each { |z| parts << build_pattern(z) }
+      choice.oneOrMore&.each { |o| parts << build_pattern(o) }
+      choice.optional&.each { |o| parts << build_pattern(o) }
+      choice.mixed&.each { |m| parts << build_mixed_content(m) }
+      parts
     end
   end
 end

@@ -9,7 +9,8 @@ module Rng
     attribute :value, :string
 
     xml do
-      root "value"
+      element "value"
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "type", to: :type
       map_attribute "id", to: :id

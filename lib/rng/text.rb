@@ -8,7 +8,7 @@ module Rng
     attribute :value, :string
 
     xml do
-      root "text"
+      element "text"
       namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute "id", to: :id

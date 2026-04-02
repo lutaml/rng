@@ -47,8 +47,7 @@ module Rng
       map_element "optional", to: :optional
       map_element "zeroOrMore", to: :zeroOrMore
       map_element "oneOrMore", to: :oneOrMore
-      map_element "text", to: :text, render_empty: :as_blank,
-                          render_default: true
+      map_element "text", to: :text
       map_element "empty", to: :empty
       map_element "value", to: :value
       map_element "data", to: :data
