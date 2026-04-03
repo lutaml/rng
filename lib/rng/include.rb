@@ -9,6 +9,7 @@ module Rng
 
     xml do
       element 'include'
+      namespace ::Rng::Namespaces::RngNamespace
 
       map_attribute 'href', to: :href
       map_attribute 'ns', to: :ns, value_map: {
