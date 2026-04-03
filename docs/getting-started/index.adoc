@@ -1,0 +1,75 @@
+---
+title: Getting Started
+layout: default
+nav_order: 2
+has_children: true
+---
+
+# Getting Started
+
+Learn how to install and use the RNG gem.
+
+## Installation
+
+```bash
+gem install rng
+```
+
+Or add to your Gemfile:
+
+```ruby
+gem 'rng'
+```
+
+## Basic Usage
+
+### Parsing RNG XML
+
+```ruby
+require 'rng'
+
+# Parse from string
+rng_xml = <<~XML
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0">
+    <start>
+      <element name="foo">
+        <empty/>
+      </element>
+    </start>
+  </grammar>
+XML
+
+grammar = Rng.parse(rng_xml)
+```
+
+### Parsing RNC Compact Syntax
+
+```ruby
+require 'rng'
+
+rnc_text = <<~RNC
+  element foo { empty }
+RNC
+
+grammar = Rng.parse_rnc(rnc_text)
+```
+
+### Converting Between Formats
+
+```ruby
+# RNG XML to RNC
+rng_xml = File.read('schema.rng')
+grammar = Rng.parse(rng_xml)
+rnc_output = Rng.to_rnc(grammar)
+
+# RNC to RNG XML
+rnc_text = File.read('schema.rnc')
+grammar = Rng.parse_rnc(rnc_text)
+rng_xml = grammar.to_xml
+```
+
+## Next Steps
+
+- Read the xref:guides/parsing-rng-xml.adoc[Parsing RNG XML] guide
+- Read the xref:guides/parsing-rnc.adoc[Parsing RNC] guide
+- Learn about xref:guides/external-references.adoc[External References]

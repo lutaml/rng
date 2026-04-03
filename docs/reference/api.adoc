@@ -1,0 +1,126 @@
+---
+title: API Reference
+layout: default
+nav_order: 5
+has_children: true
+---
+
+= API Reference
+
+Complete API documentation for the RNG gem.
+
+== Main Module: `Rng`
+
+=== `Rng.parse`
+
+Parse RNG XML format.
+
+[source,ruby]
+----
+Rng.parse(rng_xml, location: nil, nested_schema: false, validate: false, resolve_external: false)
+----
+
+**Parameters:**
+
+- `rng_xml` (String) - The RNG XML content
+- `location` (String, optional) - File location for resolving relative external refs
+- `nested_schema` (Boolean, default: false) - Whether this is a nested schema
+- `validate` (Boolean, default: false) - Whether to validate the schema
+- `resolve_external` (Boolean, default: false) - Whether to resolve external refs
+
+**Returns:** `Rng::Grammar`
+
+=== `Rng.parse_rnc`
+
+Parse RNC compact syntax.
+
+[source,ruby]
+----
+Rng.parse_rnc(rnc_text, location: nil)
+----
+
+**Parameters:**
+
+- `rnc_text` (String) - The RNC compact syntax content
+- `location` (String, optional) - File location for include resolution
+
+**Returns:** `Rng::Grammar`
+
+=== `Rng.to_rnc`
+
+Convert a Grammar to RNC compact syntax.
+
+[source,ruby]
+----
+Rng.to_rnc(grammar)
+----
+
+**Parameters:**
+
+- `grammar` (Rng::Grammar) - The grammar to convert
+
+**Returns:** String (RNC text)
+
+=== `Rng::Grammar.from_xml`
+
+Create a Grammar from XML.
+
+[source,ruby]
+----
+Rng::Grammar.from_xml(xml_string)
+----
+
+=== `Rng::SchemaValidator.validate`
+
+Validate an RNG schema.
+
+[source,ruby]
+----
+Rng::SchemaValidator.validate(rng_xml)
+----
+
+**Raises:** `Rng::SchemaValidationError` if invalid
+
+== Grammar Object Model
+
+The gem uses Lutaml::Model for the object model. All classes inherit from `Lutaml::Model::Serializable`.
+
+=== Core Classes
+
+- `Rng::Grammar` - Root container
+- `Rng::Start` - Entry point definition
+- `Rng::Define` - Named pattern definitions
+- `Rng::Element` - XML element patterns
+- `Rng::Attribute` - XML attribute patterns
+- `Rng::Group`, `Rng::Choice`, `Rng::Interleave` - Compositors
+- `Rng::Optional`, `Rng::ZeroOrMore`, `Rng::OneOrMore` - Occurrence indicators
+- `Rng::Ref`, `Rng::ParentRef`, `Rng::ExternalRef` - References
+- `Rng::Text`, `Rng::Empty`, `Rng::NotAllowed` - Basic patterns
+- `Rng::Value`, `Rng::Data`, `Rng::List` - Data patterns
+
+=== Common Methods
+
+All pattern objects support:
+
+- `.to_xml` - Convert to XML string
+- `.to_h` - Convert to hash representation
+
+== Error Classes
+
+=== `Rng::Error`
+
+Base error class.
+
+=== `Rng::SchemaValidationError`
+
+Raised when schema validation fails.
+
+=== `Rng::ExternalRefResolver::ExternalRefResolutionError`
+
+Raised when external reference resolution fails.
+
+[source,ruby]
+----
+error.href   # => The href that failed
+error.cause  # => :circular, Errno::ENOENT, or nil
+----

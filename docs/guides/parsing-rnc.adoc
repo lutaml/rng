@@ -1,0 +1,141 @@
+---
+title: Parsing RNC Compact Syntax
+layout: default
+nav_order: 2
+parent: Guides
+---
+
+= Parsing RNC Compact Syntax
+
+The RNG gem can parse RELAX NG schemas in compact syntax (RNC).
+
+== Basic Parsing
+
+[source,ruby]
+----
+require 'rng'
+
+rnc_text = <<~RNC
+  element foo {
+    element bar {
+      empty
+    }
+  }
+RNC
+
+grammar = Rng.parse_rnc(rnc_text)
+----
+
+== RNC Syntax Basics
+
+RNC is a more concise text representation of RELAX NG schemas.
+
+=== Elements
+
+[source,rnc]
+----
+element name { content }
+----
+
+=== Attributes
+
+[source,rnc]
+----
+attribute name { type }
+----
+
+=== Sequences and Choices
+
+[source,rnc]
+----
+# Sequence (both required)
+element a {}, element b {}
+
+# Choice (one of)
+element a {} | element b {}
+
+# Grouping with parentheses
+(element a {} | element b {}), element c {}
+----
+
+=== Occurrence Indicators
+
+[source,rnc]
+----
+# Optional (0 or 1)
+element foo?
+
+# Zero or more
+element foo*
+
+# One or more
+element foo+
+----
+
+=== Named Definitions
+
+[source,rnc]
+----
+# Define a named pattern
+patternName = element foo { empty }
+
+# Reference a named pattern
+element bar {
+  patternName
+}
+----
+
+=== Combining Patterns
+
+[source,rnc]
+----
+# Interleave (interleave is the default for elements)
+element foo { element a {} & element b {} }
+
+# Mixed content
+mixed { element p {} | text }
+----
+
+== Working with Parse Results
+
+The parsed grammar provides access to all definitions:
+
+[source,ruby]
+----
+grammar = Rng.parse_rnc(rnc_text)
+
+# Access start pattern
+grammar.start.each do |start_pattern|
+  puts start_pattern.to_xml
+end
+
+# Access named definitions
+grammar.define.each do |define|
+  puts "#{define.name}: #{define.element.map(&:attr_name).join(', ')}"
+end
+----
+
+== Converting RNC to RNG
+
+[source,ruby]
+----
+# Parse RNC and convert to RNG XML
+grammar = Rng.parse_rnc(rnc_text)
+rng_xml = grammar.to_xml
+
+puts rng_xml
+----
+
+== Using with External References
+
+When your RNC file uses `include` directives:
+
+[source,ruby]
+----
+grammar = Rng.parse_rnc(
+  File.read('schema.rnc'),
+  location: '/path/to/schema.rnc'
+)
+----
+
+Note: RNC include resolution is built into the RNC parser itself.

@@ -1,0 +1,24 @@
+---
+title: Guides
+layout: default
+nav_order: 3
+has_children: true
+---
+
+= Guides
+
+Step-by-step guides for common tasks with the RNG gem.
+
+== Available Guides
+
+* xref:parsing-rng-xml.adoc[Parsing RNG XML] - Parse and work with RNG XML format
+
+* xref:parsing-rnc.adoc[Parsing RNC] - Parse and work with RNC compact syntax
+
+* xref:rng-to-rnc.adoc[Converting Formats] - Convert between RNG and RNC formats
+
+* xref:validation.adoc[Schema Validation] - Validate RNG schemas
+
+* xref:external-references.adoc[External References] - Resolve include and externalRef directives
+
+* xref:error-handling.adoc[Error Handling] - Handle errors gracefully

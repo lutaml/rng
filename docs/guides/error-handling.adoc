@@ -1,0 +1,137 @@
+---
+title: Error Handling
+layout: default
+nav_order: 5
+parent: Guides
+---
+
+= Error Handling
+
+The RNG gem provides specific error classes for different failure scenarios.
+
+== Error Classes
+
+=== `Rng::Error`
+
+Base error class for all RNG gem errors.
+
+[source,ruby]
+----
+begin
+  # ... RNG operations
+rescue Rng::Error => e
+  puts "RNG error: #{e.message}"
+end
+----
+
+=== `Rng::SchemaValidationError`
+
+Raised when schema validation fails.
+
+[source,ruby]
+----
+begin
+  Rng::SchemaValidator.validate(invalid_rng)
+rescue Rng::SchemaValidationError => e
+  puts "Validation failed: #{e.message}"
+end
+----
+
+=== `Rng::ExternalRefResolver::ExternalRefResolutionError`
+
+Raised when external reference resolution fails.
+
+[source,ruby]
+----
+begin
+  grammar = Rng.parse(rng_xml, location: path, resolve_external: true)
+rescue Rng::ExternalRefResolver::ExternalRefResolutionError => e
+  puts "Failed to resolve: #{e.href}"
+  puts "Cause: #{e.cause}"
+end
+----
+
+**Error attributes:**
+
+- `href` - The URI that failed to resolve
+- `cause` - The underlying error (`:circular`, `Errno::ENOENT`, or nil)
+
+== Common Error Scenarios
+
+=== File Not Found
+
+[source,ruby]
+----
+begin
+  grammar = Rng.parse(rng_xml, location: '/nonexistent/path.rng', resolve_external: true)
+rescue Rng::ExternalRefResolver::ExternalRefResolutionError => e
+  if e.cause == Errno::ENOENT
+    puts "External file not found: #{e.href}"
+  end
+end
+----
+
+=== Circular References
+
+[source,ruby]
+----
+begin
+  grammar = Rng.parse(circular_rng_xml, location: path, resolve_external: true)
+rescue Rng::ExternalRefResolver::ExternalRefResolutionError => e
+  if e.cause == :circular
+    puts "Circular reference detected at: #{e.href}"
+  end
+end
+----
+
+=== Invalid Schema Structure
+
+[source,ruby]
+----
+begin
+  grammar = Rng.parse(invalid_rng, validate: true)
+rescue Rng::SchemaValidationError => e
+  puts "Schema is invalid: #{e.message}"
+end
+----
+
+=== RNC Parse Errors
+
+[source,ruby]
+----
+begin
+  grammar = Rng.parse_rnc(invalid_rnc)
+rescue Parslet::ParseFailed => e
+  puts "RNC parse error: #{e.message}"
+end
+----
+
+== Handling Multiple Error Types
+
+[source,ruby]
+----
+begin
+  grammar = Rng.parse(rng_xml, validate: true, resolve_external: true)
+rescue Rng::SchemaValidationError => e
+  puts "Schema validation error: #{e.message}"
+rescue Rng::ExternalRefResolver::ExternalRefResolutionError => e
+  puts "External reference error: #{e.href}"
+rescue StandardError => e
+  puts "Unexpected error: #{e.class}: #{e.message}"
+end
+----
+
+== Verbose Mode
+
+Enable verbose logging for debugging:
+
+[source,bash]
+----
+RNG_VERBOSE=1 bundle exec ruby -e '
+  grammar = Rng.parse(File.read("schema.rng"), resolve_external: true)
+'
+----
+
+This outputs warnings for:
+- Unresolvable external references
+- Parsing issues

@@ -16,3 +16,7 @@
 /_site
 /docs/_site
 /docs/.jekyll-cache
+
+# Gemfile locks (except bundled gems)
+/Gemfile.lock
+/docs/Gemfile.lock

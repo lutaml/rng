@@ -26,40 +26,40 @@ module Rng
     attribute :documentation, Documentation
 
     xml do
-      element "start"
+      element 'start'
       ordered
 
       namespace ::Rng::Namespaces::RngNamespace
 
-      map_attribute "id", to: :id
-      map_attribute "ns", to: :ns, value_map: {
+      map_attribute 'id', to: :id
+      map_attribute 'ns', to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
+      map_attribute 'datatypeLibrary', to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "combine", to: :combine
+      map_attribute 'combine', to: :combine
 
-      map_element "ref", to: :ref
-      map_element "element", to: :element
-      map_element "choice", to: :choice
-      map_element "group", to: :group
-      map_element "interleave", to: :interleave
-      map_element "mixed", to: :mixed
-      map_element "optional", to: :optional
-      map_element "zeroOrMore", to: :zeroOrMore
-      map_element "oneOrMore", to: :oneOrMore
-      map_element "text", to: :text
-      map_element "empty", to: :empty
-      map_element "value", to: :value
-      map_element "data", to: :data
-      map_element "list", to: :list
-      map_element "parentRef", to: :parentRef
-      map_element "notAllowed", to: :notAllowed
-      map_element "grammar", to: :grammar
-      map_element "documentation", to: :documentation
+      map_element 'ref', to: :ref
+      map_element 'element', to: :element
+      map_element 'choice', to: :choice
+      map_element 'group', to: :group
+      map_element 'interleave', to: :interleave
+      map_element 'mixed', to: :mixed
+      map_element 'optional', to: :optional
+      map_element 'zeroOrMore', to: :zeroOrMore
+      map_element 'oneOrMore', to: :oneOrMore
+      map_element 'text', to: :text
+      map_element 'empty', to: :empty
+      map_element 'value', to: :value
+      map_element 'data', to: :data
+      map_element 'list', to: :list
+      map_element 'parentRef', to: :parentRef
+      map_element 'notAllowed', to: :notAllowed
+      map_element 'grammar', to: :grammar
+      map_element 'documentation', to: :documentation
     end
   end
 end

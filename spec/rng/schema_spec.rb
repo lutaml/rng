@@ -1,127 +1,127 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe Rng::Grammar do
-  describe "RNG parsing" do
+  describe 'RNG parsing' do
     let(:rng_input) do
-      File.read("spec/fixtures/rng/address_book.rng")
+      File.read('spec/fixtures/rng/address_book.rng')
     end
 
-    it "correctly parses RNG" do
+    it 'correctly parses RNG' do
       parsed = Rng.parse(rng_input)
       expect(parsed).to be_a(described_class)
       expect(parsed.element).to be_empty
-      expect(parsed.start.first.element.attr_name).to eq("addressBook")
+      expect(parsed.start.first.element.attr_name).to eq('addressBook')
     end
   end
 
-  describe "Round-trip testing RNG" do
+  describe 'Round-trip testing RNG' do
     # Address Book Tests
     let(:address_book_rng) do
-      File.read("spec/fixtures/rng/address_book.rng")
+      File.read('spec/fixtures/rng/address_book.rng')
     end
 
     # Test Suite Schema Tests
     let(:test_suite_rng) do
-      File.read("spec/fixtures/rng/testSuite.rng")
+      File.read('spec/fixtures/rng/testSuite.rng')
     end
     # RELAX NG Schema Tests
     let(:relaxng_schema) do
-      File.read("spec/fixtures/rng/relaxng.rng")
+      File.read('spec/fixtures/rng/relaxng.rng')
     end
 
-    it "correctly round-trips address_book.rng (analogous comparison)" do
+    it 'correctly round-trips address_book.rng (analogous comparison)' do
       parsed = described_class.from_xml(address_book_rng)
       regenerated = parsed.to_xml
       expect(regenerated.gsub(/<!--.*?-->/m, '')).to be_xml_equivalent_to(address_book_rng.gsub(/<!--.*?-->/m, ''))
     end
 
-    it "correctly round-trips address_book.rng (formatted equivalent comparison)" do
+    it 'correctly round-trips address_book.rng (formatted equivalent comparison)' do
       parsed = described_class.from_xml(address_book_rng)
       regenerated = parsed.to_xml
       expect(regenerated).to be_xml_equivalent_to(address_book_rng)
     end
 
-    it "correctly round-trips relaxng.rng (analogous comparison)" do
+    it 'correctly round-trips relaxng.rng (analogous comparison)' do
       parsed = described_class.from_xml(relaxng_schema)
       regenerated = parsed.to_xml
       # Strip comments for comparison since Lutaml doesn't preserve them
       expect(regenerated.gsub(/<!--.*?-->/m, '')).to be_xml_equivalent_to(relaxng_schema.gsub(/<!--.*?-->/m, ''))
     end
 
-    it "correctly round-trips relaxng.rng (formatted equivalent comparison)" do
+    it 'correctly round-trips relaxng.rng (formatted equivalent comparison)' do
       parsed = described_class.from_xml(relaxng_schema)
       regenerated = parsed.to_xml
       expect(regenerated.gsub(/<!--.*?-->/m, '')).to be_xml_equivalent_to(relaxng_schema.gsub(/<!--.*?-->/m, ''))
     end
 
-    it "correctly round-trips testSuite.rng (analogous comparison)" do
+    it 'correctly round-trips testSuite.rng (analogous comparison)' do
       parsed = described_class.from_xml(test_suite_rng)
       regenerated = parsed.to_xml
       expect(regenerated.gsub(/<!--.*?-->/m, '')).to be_xml_equivalent_to(test_suite_rng.gsub(/<!--.*?-->/m, ''))
     end
 
-    it "correctly round-trips testSuite.rng (formatted equivalent comparison)" do
+    it 'correctly round-trips testSuite.rng (formatted equivalent comparison)' do
       parsed = described_class.from_xml(test_suite_rng)
       regenerated = parsed.to_xml
       expect(regenerated.gsub(/<!--.*?-->/m, '')).to be_xml_equivalent_to(test_suite_rng.gsub(/<!--.*?-->/m, ''))
     end
   end
 
-  describe "RNC parsing" do
+  describe 'RNC parsing' do
     let(:rnc_input) do
-      File.read("spec/fixtures/rnc/address_book.rnc")
+      File.read('spec/fixtures/rnc/address_book.rnc')
     end
 
-    it "correctly parses RNC" do
+    it 'correctly parses RNC' do
       parsed = Rng.parse_rnc(rnc_input)
       expect(parsed).to be_a(described_class)
       start_element = parsed.start.first.element
       expect(start_element).to be_a(Rng::Element)
-      expect(start_element.attr_name).to eq("addressBook")
+      expect(start_element.attr_name).to eq('addressBook')
     end
   end
 
-  describe "RNG to RNC conversion" do
+  describe 'RNG to RNC conversion' do
     let(:rng_input) do
-      File.read("spec/fixtures/rng/address_book.rng")
+      File.read('spec/fixtures/rng/address_book.rng')
     end
 
-    it "correctly converts RNG to RNC" do
+    it 'correctly converts RNG to RNC' do
       parsed = Rng.parse(rng_input)
       rnc = Rng.to_rnc(parsed)
-      expect(rnc).to include("element addressBook")
-      expect(rnc).to include("element card")
-      expect(rnc).to include("element name")
-      expect(rnc).to include("element email")
+      expect(rnc).to include('element addressBook')
+      expect(rnc).to include('element card')
+      expect(rnc).to include('element name')
+      expect(rnc).to include('element email')
     end
   end
 
-  describe "RNC to RNG conversion" do
+  describe 'RNC to RNG conversion' do
     let(:rnc_input) do
-      File.read("spec/fixtures/rnc/address_book.rnc")
+      File.read('spec/fixtures/rnc/address_book.rnc')
     end
 
-    it "correctly converts RNC to RNG" do
+    it 'correctly converts RNC to RNG' do
       parsed = Rng.parse_rnc(rnc_input)
       expect(parsed).to be_a(described_class)
       start_element = parsed.start.first.element
       expect(start_element).to be_a(Rng::Element)
-      expect(start_element.attr_name).to eq("addressBook")
+      expect(start_element.attr_name).to eq('addressBook')
     end
   end
 
-  describe "Round-trip testing RNG/RNC" do
+  describe 'Round-trip testing RNG/RNC' do
     let(:rng_input) do
-      File.read("spec/fixtures/rng/address_book.rng")
+      File.read('spec/fixtures/rng/address_book.rng')
     end
 
     let(:rnc_input) do
-      File.read("spec/fixtures/rnc/address_book.rnc")
+      File.read('spec/fixtures/rnc/address_book.rnc')
     end
 
-    it "correctly round-trips RNG to RNC and back" do
+    it 'correctly round-trips RNG to RNC and back' do
       parsed_rng = Rng.parse(rng_input)
       rnc = Rng.to_rnc(parsed_rng)
       parsed_rnc = Rng.parse_rnc(rnc)
@@ -132,7 +132,7 @@ RSpec.describe Rng::Grammar do
       expect(rnc_start_elem.attr_name).to eq(rng_start_elem.attr_name)
     end
 
-    it "correctly round-trips RNC to RNG and back" do
+    it 'correctly round-trips RNC to RNG and back' do
       parsed_rnc = Rng.parse_rnc(rnc_input)
       rng_xml = parsed_rnc.to_xml
       parsed_rng = Rng.parse(rng_xml)

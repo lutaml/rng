@@ -1,0 +1,9 @@
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+<include href="level2.rng">
+  <define name="foo">
+    <element name="bar">
+      <empty></empty>
+    </element>
+  </define>
+</include>
+</grammar>

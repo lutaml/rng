@@ -1,0 +1,23 @@
+title: RNG Ruby Gem
+description: A Ruby gem for parsing, manipulating, and converting RELAX NG schemas
+theme: just-the-docs
+
+plugins:
+  - jekyll-asciidoc
+
+asciidoc:
+  ext: .adoc
+  safe: unsafe
+
+collections:
+  guides:
+    output: true
+  reference:
+    output: true
+  getting-started:
+    output: true
+
+nav_sections:
+  getting-started: Getting Started
+  guides: Guides
+  reference: Reference

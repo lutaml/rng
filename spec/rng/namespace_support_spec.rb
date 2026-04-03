@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
-RSpec.describe "Namespace Support" do
-  describe "legacy compatibility" do
-    it "parses default namespace (old format)" do
+RSpec.describe 'Namespace Support' do
+  describe 'legacy compatibility' do
+    it 'parses default namespace (old format)' do
       rnc = 'default namespace = "http://example.com"
 element foo { empty }'
       grammar = Rng.parse_rnc(rnc)
@@ -12,7 +12,7 @@ element foo { empty }'
       expect(grammar.start).not_to be_nil
     end
 
-    it "generates RNG XML with default namespace" do
+    it 'generates RNG XML with default namespace' do
       rnc = 'default namespace = "http://example.com"
 element foo { empty }'
       grammar = Rng.parse_rnc(rnc)
@@ -21,33 +21,33 @@ element foo { empty }'
       expect(xml).to include('ns="http://example.com"')
     end
 
-    it "preserves namespace in element" do
+    it 'preserves namespace in element' do
       rnc = 'default namespace = "http://example.com"
 element foo { empty }'
       grammar = Rng.parse_rnc(rnc)
       xml = grammar.to_xml
 
-      expect(xml).to include("<grammar")
+      expect(xml).to include('<grammar')
       expect(xml).to include('ns="http://example.com"')
     end
   end
 
-  describe "new namespace declarations" do
-    it "parses prefixed namespace" do
+  describe 'new namespace declarations' do
+    it 'parses prefixed namespace' do
       rnc = 'namespace eg = "http://example.com"
 element foo { empty }'
       grammar = Rng.parse_rnc(rnc)
       expect(grammar).to be_a(Rng::Grammar)
     end
 
-    it "parses default namespace with prefix" do
+    it 'parses default namespace with prefix' do
       rnc = 'default namespace rng = "http://relaxng.org/ns/structure/1.0"
 element foo { empty }'
       grammar = Rng.parse_rnc(rnc)
       expect(grammar).to be_a(Rng::Grammar)
     end
 
-    it "parses multiple namespace declarations" do
+    it 'parses multiple namespace declarations' do
       rnc = <<~RNC
         default namespace rng = "http://relaxng.org/ns/structure/1.0"
         namespace local = ""
@@ -60,7 +60,7 @@ element foo { empty }'
       expect(grammar.start).not_to be_nil
     end
 
-    it "generates RNG XML with prefixed namespaces" do
+    it 'generates RNG XML with prefixed namespaces' do
       rnc = 'namespace eg = "http://example.com"
 element eg:foo { empty }'
       grammar = Rng.parse_rnc(rnc)
@@ -70,7 +70,7 @@ element eg:foo { empty }'
       expect(xml).to include('name="foo"')
     end
 
-    it "resolves namespace prefix to URI in elements" do
+    it 'resolves namespace prefix to URI in elements' do
       rnc = 'namespace eg = "http://example.com"
 element eg:bar { empty }'
       grammar = Rng.parse_rnc(rnc)
@@ -80,7 +80,7 @@ element eg:bar { empty }'
       expect(xml).not_to include('ns="eg"')
     end
 
-    it "resolves namespace prefix to URI in attributes" do
+    it 'resolves namespace prefix to URI in attributes' do
       rnc = 'namespace eg = "http://example.com"
 element foo { attribute eg:bar { text } }'
       grammar = Rng.parse_rnc(rnc)
@@ -92,15 +92,15 @@ element foo { attribute eg:bar { text } }'
     end
   end
 
-  describe "datatype library support" do
-    it "parses datatype library declaration" do
+  describe 'datatype library support' do
+    it 'parses datatype library declaration' do
       rnc = 'datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 element foo { xsd:string }'
       grammar = Rng.parse_rnc(rnc)
       expect(grammar).to be_a(Rng::Grammar)
     end
 
-    it "generates RNG XML with datatype library" do
+    it 'generates RNG XML with datatype library' do
       rnc = 'datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 element foo { xsd:string }'
       grammar = Rng.parse_rnc(rnc)
@@ -109,7 +109,7 @@ element foo { xsd:string }'
       expect(xml).to include('datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"')
     end
 
-    it "applies datatype library to data elements" do
+    it 'applies datatype library to data elements' do
       rnc = 'datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
 element foo { attribute bar { xsd:integer } }'
       grammar = Rng.parse_rnc(rnc)
@@ -120,8 +120,8 @@ element foo { attribute bar { xsd:integer } }'
     end
   end
 
-  describe "combined declarations" do
-    it "handles namespace and datatype together" do
+  describe 'combined declarations' do
+    it 'handles namespace and datatype together' do
       rnc = <<~RNC
         namespace eg = "http://example.com"
         datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
@@ -135,7 +135,7 @@ element foo { attribute bar { xsd:integer } }'
       expect(grammar.start).not_to be_nil
     end
 
-    it "generates complete RNG XML with multiple declarations" do
+    it 'generates complete RNG XML with multiple declarations' do
       rnc = <<~RNC
         namespace eg = "http://example.com"
         datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
@@ -149,7 +149,7 @@ element foo { attribute bar { xsd:integer } }'
       expect(xml).to include('datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"')
     end
 
-    it "handles multiple prefixed namespaces" do
+    it 'handles multiple prefixed namespaces' do
       rnc = <<~RNC
         namespace eg1 = "http://example.com/ns1"
         namespace eg2 = "http://example.com/ns2"
@@ -166,8 +166,8 @@ element foo { attribute bar { xsd:integer } }'
     end
   end
 
-  describe "edge cases" do
-    it "handles empty namespace URI" do
+  describe 'edge cases' do
+    it 'handles empty namespace URI' do
       rnc = 'namespace local = ""
 element local:foo { empty }'
       grammar = Rng.parse_rnc(rnc)
@@ -176,7 +176,7 @@ element local:foo { empty }'
       expect(xml).to include('ns=""')
     end
 
-    it "handles schemas with only preamble" do
+    it 'handles schemas with only preamble' do
       rnc = <<~RNC
         namespace eg = "http://example.com"
         datatypes xsd = "http://www.w3.org/2001/XMLSchema-datatypes"
@@ -187,7 +187,7 @@ element local:foo { empty }'
       expect(grammar).to be_a(Rng::Grammar)
     end
 
-    it "handles default namespace without elements using prefix" do
+    it 'handles default namespace without elements using prefix' do
       rnc = 'default namespace = "http://example.com"
 element foo { attribute bar { text } }'
       grammar = Rng.parse_rnc(rnc)

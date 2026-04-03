@@ -9,11 +9,11 @@ module Rng
     attribute :value, :string
 
     xml do
-      element "attribute"
+      element 'attribute'
       namespace ::Rng::Namespaces::RngNamespace
 
-      map_attribute "name", to: :name
-      map_attribute "namespace", to: :namespace
+      map_attribute 'name', to: :name
+      map_attribute 'namespace', to: :namespace
       map_content to: :value
     end
 

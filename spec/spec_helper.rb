@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require "rng"
-require "canon"
+require 'rng'
+require 'canon'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
-  config.example_status_persistence_file_path = ".rspec_status"
+  config.example_status_persistence_file_path = '.rspec_status'
 
   # Disable RSpec exposing methods globally on `Module` and `main`
   config.disable_monkey_patching!
@@ -15,7 +15,7 @@ RSpec.configure do |config|
   end
 end
 
-require "lutaml/model"
+require 'lutaml/model'
 Lutaml::Model::Config.configure do |config|
   config.xml_adapter_type = :nokogiri
 end

@@ -7,17 +7,17 @@ module Rng
     attribute :datatypeLibrary, :string
 
     xml do
-      element "notAllowed"
+      element 'notAllowed'
       ordered
 
       namespace ::Rng::Namespaces::RngNamespace
 
-      map_attribute "id", to: :id
-      map_attribute "ns", to: :ns, value_map: {
+      map_attribute 'id', to: :id
+      map_attribute 'ns', to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "datatypeLibrary", to: :datatypeLibrary
+      map_attribute 'datatypeLibrary', to: :datatypeLibrary
     end
   end
 end
