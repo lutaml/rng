@@ -239,23 +239,20 @@ module Rng
     # Annotation content: sequence of annotation items OR empty OR raw content (comments, etc.)
     # Raw content matches any character that is NOT a bracket or quote
     rule(:annotation_content) do
-      (
-        (annotation_item >> (whitespace >> annotation_item).repeat >> whitespace).as(:ann_items) |
+      (annotation_item >> (whitespace >> annotation_item).repeat >> whitespace).as(:ann_items) |
         (str('[').absent? >> str(']').absent? >> str('"').absent? >> str("'").absent? >> any).repeat.as(:raw_content) |
         whitespace
-      )
     end
 
     # Single annotation: [ content ] where content can contain nested brackets, strings, etc.
     # Appears before patterns, definitions, and within annotation elements
     # Handles both empty [] and content-bearing [x = "y"] annotations
     rule(:annotation) do
-      (str('[') >> whitespace >>
+      str('[') >> whitespace >>
         (
           (annotation_content >> whitespace >> str(']')).as(:ann) |
           str(']').as(:ann)
         )
-      )
     end
 
     # One or more annotations preceding a pattern
@@ -613,12 +610,12 @@ module Rng
         if input[i, 3] == '"""'
           end_idx = input.index('"""', i + 3)
           end_idx ||= input.length - 3
-          result << input[i..end_idx + 2]
+          result << input[i..(end_idx + 2)]
           i = end_idx + 3
         elsif input[i, 3] == "'''"
           end_idx = input.index("'''", i + 3)
           end_idx ||= input.length - 3
-          result << input[i..end_idx + 2]
+          result << input[i..(end_idx + 2)]
           i = end_idx + 3
         # Single-line double-quoted string: copy verbatim
         elsif input[i] == '"'

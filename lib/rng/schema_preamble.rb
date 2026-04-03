@@ -49,8 +49,8 @@ module Rng
     #
     # @return [Hash<String, String>] Map of prefix => URI
     def namespace_map
-      @namespaces.select(&:prefixed?).each_with_object({}) do |ns, map|
-        map[ns.prefix] = ns.uri
+      @namespaces.select(&:prefixed?).to_h do |ns|
+        [ns.prefix, ns.uri]
       end
     end
 
@@ -58,8 +58,8 @@ module Rng
     #
     # @return [Hash<String, String>] Map of prefix => URI
     def datatype_map
-      @datatypes.each_with_object({}) do |dt, map|
-        map[dt.prefix] = dt.uri
+      @datatypes.to_h do |dt|
+        [dt.prefix, dt.uri]
       end
     end
 

@@ -500,7 +500,6 @@ RSpec.describe Rng::RncParser do
           elapsed = Time.now - start_time
 
           avg_time = elapsed / 10
-          puts "  Average parse time for #{schema_name}: #{(avg_time * 1000).round(2)}ms"
 
           # Should parse in under 2s per iteration
           expect(avg_time).to be < 2.0
@@ -536,8 +535,6 @@ RSpec.describe Rng::RncParser do
 
         elapsed = Time.now - start_time
         avg_time = elapsed / 100
-
-        puts "  Average round-trip time: #{(avg_time * 1000).round(2)}ms"
 
         # Should complete in under 50ms per round-trip
         expect(avg_time).to be < 0.05

@@ -607,7 +607,7 @@ module Rng
         report_error("datatypeLibrary '#{dtl}' must have a scheme", xpath: xpath) unless uri.scheme
         # Must have scheme-specific part after the colon
         # e.g., "foo:" has no scheme-specific part and is invalid
-        after_scheme = dtl[uri.scheme.length + 1..]
+        after_scheme = dtl[(uri.scheme.length + 1)..]
         if !after_scheme || after_scheme.empty?
           report_error("datatypeLibrary '#{dtl}' must have a non-empty scheme-specific part",
                        xpath: xpath)

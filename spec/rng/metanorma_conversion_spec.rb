@@ -92,21 +92,6 @@ RSpec.describe 'Metanorma Schema Conversion' do
         end
       end
 
-      # Log results
-      puts "\n#{'=' * 70}"
-      puts 'Metanorma Schema Conversion Results'
-      puts '=' * 70
-      puts "Total schemas: #{METANORMA_SCHEMAS.length}"
-      puts "Successfully converted: #{success_count}"
-      puts "Failed: #{METANORMA_SCHEMAS.length - success_count}"
-      puts "Success rate: #{(success_count.to_f / METANORMA_SCHEMAS.length * 100).round(1)}%"
-
-      if failed_schemas.any?
-        puts "\nFailed schemas:"
-        failed_schemas.each { |error| puts "  - #{error}" }
-      end
-      puts "#{'=' * 70}\n"
-
       # Test should pass - we've already verified 100% parsing success
       expect(success_count).to eq(METANORMA_SCHEMAS.length)
     end
@@ -166,14 +151,6 @@ RSpec.describe 'Metanorma Schema Conversion' do
 
       total_time = times.real
       avg_time = total_time / METANORMA_SCHEMAS.length
-
-      puts "\n#{'-' * 70}"
-      puts 'Performance Metrics'
-      puts '-' * 70
-      puts "Total conversion time: #{total_time.round(2)}s"
-      puts "Average time per schema: #{(avg_time * 1000).round(1)}ms"
-      puts "Throughput: #{(METANORMA_SCHEMAS.length / total_time).round(1)} schemas/second"
-      puts "#{'-' * 70}\n"
 
       # Each schema should convert in under 1 second
       expect(avg_time).to be < 1.0
