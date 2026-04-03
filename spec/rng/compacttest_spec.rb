@@ -17,15 +17,7 @@ RSpec.describe 'Official RELAX NG Compact Test Suite' do
     end
 
     it 'provides test case categorization' do
-      puts "\n#{'=' * 70}"
-      puts 'RELAX NG COMPACT TEST SUITE STATISTICS'
-      puts '=' * 70
-      puts "Total test cases:        #{test_suite.test_cases.count}"
-      puts "Valid RNC cases:         #{test_suite.valid_rnc_cases.count}"
-      puts "Invalid RNC cases:       #{test_suite.invalid_rnc_cases.count}"
-      puts "Round-trip cases:        #{test_suite.roundtrip_cases.count}"
-      puts "Resource-based cases:    #{test_suite.resource_cases.count}"
-      puts "#{'=' * 70}\n"
+      expect(test_suite.test_cases).not_to be_empty
     end
   end
 
@@ -42,14 +34,9 @@ RSpec.describe 'Official RELAX NG Compact Test Suite' do
       end
 
       0
-
-      # Dynamically generate test cases
-      # Note: We can't use dynamic generation with let() values in the iterator
-      # So we'll use a different approach - define examples in before(:all)
     end
   end
 
-  # Generate dynamic examples for valid RNC cases
   describe 'Valid RNC Schema Parsing (Individual Tests)' do
     let(:test_suite_instance) { Rng::TestSuiteParser.load(test_suite_path) }
 
@@ -63,26 +50,6 @@ RSpec.describe 'Official RELAX NG Compact Test Suite' do
         skipped: 0,
         errors: []
       }
-    end
-
-    after(:all) do
-      puts "\n#{'=' * 70}"
-      puts 'VALID RNC PARSING RESULTS'
-      puts '=' * 70
-      puts "Passed:  #{@results[:passed]}"
-      puts "Failed:  #{@results[:failed]}"
-      puts "Skipped: #{@results[:skipped]}"
-      puts "Success Rate: #{(@results[:passed].to_f / (@results[:passed] + @results[:failed]) * 100).round(1)}%" if (@results[:passed] + @results[:failed]) > 0
-      puts '=' * 70
-
-      if @results[:failed] > 0
-        puts "\nFailed test cases:"
-        @results[:errors].first(10).each do |error|
-          puts "  - Test ##{error[:id]}: #{error[:message]}"
-        end
-        puts "  (showing first 10 of #{@results[:errors].count})" if @results[:errors].count > 10
-      end
-      puts ''
     end
 
     test_suite_parser = Rng::TestSuiteParser.load(
@@ -127,26 +94,6 @@ RSpec.describe 'Official RELAX NG Compact Test Suite' do
       }
     end
 
-    after(:all) do
-      puts "\n#{'=' * 70}"
-      puts 'INVALID RNC REJECTION RESULTS'
-      puts '=' * 70
-      puts "Correctly rejected:     #{@results[:correctly_rejected]}"
-      puts "Incorrectly accepted:   #{@results[:incorrectly_accepted]}"
-      total = @results[:correctly_rejected] + @results[:incorrectly_accepted]
-      puts "Success Rate: #{(@results[:correctly_rejected].to_f / total * 100).round(1)}%" if total > 0
-      puts '=' * 70
-
-      if @results[:incorrectly_accepted] > 0
-        puts "\nIncorrectly accepted test cases:"
-        @results[:errors].first(10).each do |error|
-          puts "  - Test ##{error[:id]}: #{error[:rnc][0..100]}"
-        end
-        puts "  (showing first 10 of #{@results[:errors].count})" if @results[:errors].count > 10
-      end
-      puts ''
-    end
-
     test_suite_parser = Rng::TestSuiteParser.load(
       File.expand_path('../fixtures/compacttest.xml', __dir__)
     )
@@ -186,27 +133,6 @@ RSpec.describe 'Official RELAX NG Compact Test Suite' do
         parse_errors: 0,
         errors: []
       }
-    end
-
-    after(:all) do
-      puts "\n#{'=' * 70}"
-      puts 'ROUND-TRIP CONVERSION RESULTS'
-      puts '=' * 70
-      puts "Passed:        #{@results[:passed]}"
-      puts "Failed:        #{@results[:failed]}"
-      puts "Parse errors:  #{@results[:parse_errors]}"
-      total = @results[:passed] + @results[:failed] + @results[:parse_errors]
-      puts "Success Rate: #{(@results[:passed].to_f / total * 100).round(1)}%" if total > 0
-      puts '=' * 70
-
-      if @results[:failed] > 0
-        puts "\nFailed round-trip conversions:"
-        @results[:errors].first(5).each do |error|
-          puts "  - Test ##{error[:id]}: #{error[:message][0..100]}"
-        end
-        puts "  (showing first 5 of #{@results[:errors].count})" if @results[:errors].count > 5
-      end
-      puts ''
     end
 
     test_suite_parser = Rng::TestSuiteParser.load(
@@ -261,14 +187,6 @@ RSpec.describe 'Official RELAX NG Compact Test Suite' do
     let(:resource_cases) { test_suite.resource_cases }
 
     it 'identifies resource-based test cases' do
-      puts "\n#{'=' * 70}"
-      puts 'RESOURCE-BASED TEST CASES'
-      puts '=' * 70
-      puts "Total: #{resource_cases.count}"
-      puts 'These tests require external file handling (include/externalRef)'
-      puts 'Skipped for initial implementation'
-      puts "#{'=' * 70}\n"
-
       expect(resource_cases).not_to be_empty
     end
 

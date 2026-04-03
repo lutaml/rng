@@ -253,22 +253,15 @@ RSpec.describe 'RELAX NG Specification Tests' do
   describe 'Test Suite Summary' do
     it 'contains test cases organized by section' do
       sections = SPECTEST_XML.xpath('//section').map(&:text).uniq
-      puts "Found #{sections.length} sections with tests"
+      expect(sections.length).to be > 0
 
       correct_count = SPECTEST_XML.xpath('//correct').count
       incorrect_count = SPECTEST_XML.xpath('//incorrect').count
-      valid_count = SPECTEST_XML.xpath('//valid').count
-      invalid_count = SPECTEST_XML.xpath('//invalid').count
-
-      puts 'Test suite contains:'
-      puts "- #{correct_count} correct schemas"
-      puts "- #{incorrect_count} incorrect schemas"
-      puts "- #{valid_count} valid XML examples"
-      puts "- #{invalid_count} invalid XML examples"
+      SPECTEST_XML.xpath('//valid').count
+      SPECTEST_XML.xpath('//invalid').count
 
       # Count test cases with resources
-      test_cases_with_resources = SPECTEST_XML.xpath('//testCase[resource]').count
-      puts "- #{test_cases_with_resources} test cases with external resources"
+      SPECTEST_XML.xpath('//testCase[resource]').count
 
       total = correct_count + incorrect_count
       expect(total).to be > 0
