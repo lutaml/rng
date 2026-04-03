@@ -1,0 +1,149 @@
+{
+  "1": {
+    "section": "4.5",
+    "documentation": "",
+    "resources": [
+      "sub1/x",
+      "sub1/x",
+      "sub3/x",
+      "x"
+    ]
+  },
+  "2": {
+    "section": "4.5",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "3": {
+    "section": "4.6",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "4": {
+    "section": "4.6",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "5": {
+    "section": "4.6",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "6": {
+    "section": "4.6",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "7": {
+    "section": "4.6",
+    "documentation": "",
+    "resources": [
+      "x",
+      "y"
+    ]
+  },
+  "8": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "9": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "10": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x",
+      "y"
+    ]
+  },
+  "11": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "12": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "13": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x",
+      "y"
+    ]
+  },
+  "14": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "15": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "16": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "17": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "18": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  },
+  "19": {
+    "section": "4.7",
+    "documentation": "",
+    "resources": [
+      "level1.rng",
+      "level2.rng"
+    ]
+  },
+  "20": {
+    "section": "4.6",
+    "documentation": "",
+    "resources": [
+      "x"
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+---
+title: Architecture
+layout: default
+nav_order: 3
+parent: Understanding
+---
+
+= Architecture
+
+The RNG gem has two parsing paths and one generation path.
+
+== RNG XML Parsing
+
+[source]
+----
+Rng.parse() → Grammar.from_xml() → Lutaml::Model with Nokogiri adapter
+----
+
+All RNG model classes inherit from `Lutaml::Model::Serializable` and define XML mappings via the `xml do` block.
+
+== RNC Compact Parsing
+
+[source]
+----
+Rng.parse_rnc() → RncParser.parse() → ParseTreeProcessor.normalize()
+    → RncToRngConverter.convert() → Grammar.from_xml()
+----
+
+The RNC parser is a Parslet-based PEG parser in `lib/rng/rnc_parser.rb`.
+
+== RNG to RNC Generation
+
+[source]
+----
+Rng.to_rnc() → ToRnc.convert() → RncBuilder.build()
+----
+
+`RncBuilder` traverses the object model and generates RNC text.
+
+== Object Model Structure
+
+The object model mirrors RELAX NG concepts:
+
+- `Grammar` - Root container
+- `Start` - Entry point definition
+- `Define` - Named pattern definitions
+- `Element`, `Attribute` - XML structures
+- Pattern classes: `Choice`, `Group`, `Interleave`, `Mixed`, `Optional`, `ZeroOrMore`, `OneOrMore`, `Text`, `Empty`, `Value`, `Data`, `List`
+- Reference classes: `Ref`, `ParentRef`, `ExternalRef`
+- Name classes: `Name`, `AnyName`, `NsName`, `Except`
+- `Div` - Documentation and grouping container
+
+== Dependencies
+
+- **lutaml-model** - Object model and XML serialization
+- **nokogiri** - XML parsing and building
+- **parslet** - RNC compact syntax parser
+- **canon** - XML comparison matchers for tests

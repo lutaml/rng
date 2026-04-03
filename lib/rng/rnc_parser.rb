@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "parslet"
-require "nokogiri"
-require "set"
+require 'parslet'
+require 'nokogiri'
+require 'set'
 
 module Rng
   class RncParser < Parslet::Parser
@@ -20,11 +20,11 @@ module Rng
 
     # Comments
     # Regular comment: single #
-    rule(:comment) { str("#") >> str("#").absent? >> match('[^\n]').repeat >> (str("\n") | any.absent?) }
+    rule(:comment) { str('#') >> str('#').absent? >> match('[^\n]').repeat >> (str("\n") | any.absent?) }
     rule(:comment?) { comment.maybe }
 
     # Documentation comment: ##
-    rule(:doc_comment) { str("##") >> match('[^\n]').repeat.as(:doc_line) >> (str("\n") | any.absent?) }
+    rule(:doc_comment) { str('##') >> match('[^\n]').repeat.as(:doc_line) >> (str("\n") | any.absent?) }
     rule(:doc_comments) { (doc_comment >> (whitespace.maybe >> doc_comment).repeat).as(:documentation) }
 
     # Whitespace (including comments)
@@ -34,13 +34,13 @@ module Rng
     rule(:newline?) { newline.maybe }
     # Only regular comments in whitespace - doc comments are captured by pattern rules
     rule(:whitespace) { (space | newline | comment).repeat }
-    rule(:comma) { str(",") }
+    rule(:comma) { str(',') }
     rule(:comma?) { (whitespace >> comma >> whitespace).maybe }
 
     # Escape sequences support
     # Unicode code point: \x{HHHHHH} (1-6 hex digits)
     rule(:hex_escape) do
-      str("\\x{") >> match('[0-9a-fA-F]').repeat(1, 6).as(:hex) >> str("}")
+      str('\\x{') >> match('[0-9a-fA-F]').repeat(1, 6).as(:hex) >> str('}')
     end
 
     # Match a keyword that may contain hex escapes
@@ -52,19 +52,19 @@ module Rng
 
     # Character escapes for strings: \", \\, \n, \r, \t, and RELAX NG class escapes: \i, \c, \d, \w
     rule(:char_escape) do
-      str("\\") >> match('["\\\\ntricdw]').as(:char)
+      str('\\') >> match('["\\\\ntricdw]').as(:char)
     end
 
     # Identifier can contain regular chars, dots, hex escapes, or backslash escapes
     rule(:identifier_char) do
       hex_escape.as(:hex_escape) |
-        (str("\\") >> str("\\").as(:escaped_backslash)).as(:backslash_escape) |
-        (str("\\") >> (match("[a-zA-Z0-9_.-]").as(:escaped_char) | match("[a-zA-Z]").as(:escaped_keyword))).as(:backslash_escape) |
-        match("[a-zA-Z0-9_.-]").as(:char)
+        (str('\\') >> str('\\').as(:escaped_backslash)).as(:backslash_escape) |
+        (str('\\') >> (match('[a-zA-Z0-9_.-]').as(:escaped_char) | match('[a-zA-Z]').as(:escaped_keyword))).as(:backslash_escape) |
+        match('[a-zA-Z0-9_.-]').as(:char)
     end
 
     rule(:identifier) { identifier_char.repeat(1).as(:identifier_parts) }
-    rule(:namespace_prefix) { identifier.as(:prefix) >> str(":") }
+    rule(:namespace_prefix) { identifier.as(:prefix) >> str(':') }
     rule(:namespace_prefix?) { namespace_prefix.maybe }
     rule(:qualified_name) { namespace_prefix? >> identifier.as(:local_name) }
 
@@ -72,21 +72,21 @@ module Rng
 
     # anyName wildcard: *  or  * - exceptName
     rule(:any_name_pattern) do
-      str("*") >>
-        (space >> str("-") >> space >> name_class_except).maybe.as(:except)
+      str('*') >>
+        (space >> str('-') >> space >> name_class_except).maybe.as(:except)
     end
 
     # nsName wildcard: prefix:*  or  prefix:* - exceptName
     rule(:ns_name_pattern) do
-      namespace_prefix >> str("*") >>
-        (space >> str("-") >> space >> name_class_except).maybe.as(:except)
+      namespace_prefix >> str('*') >>
+        (space >> str('-') >> space >> name_class_except).maybe.as(:except)
     end
 
     # Except clause can be a single name or multiple names in parentheses
     rule(:name_class_except) do
-      (str("(") >> space? >> name_class >>
-       (space? >> str("|") >> space? >> name_class).repeat >>
-       space? >> str(")")) |
+      (str('(') >> space? >> name_class >>
+       (space? >> str('|') >> space? >> name_class).repeat >>
+       space? >> str(')')) |
         name_class
     end
 
@@ -100,17 +100,17 @@ module Rng
     rule(:name_class) do
       ns_name_pattern.as(:ns_name) |
         any_name_pattern.as(:any_name) |
-        (qualified_name >> (space? >> str("|") >> space? >> qualified_name).repeat(1).as(:name_choice_items)).as(:name_choice) |
+        (qualified_name >> (space? >> str('|') >> space? >> qualified_name).repeat(1).as(:name_choice_items)).as(:name_choice) |
         qualified_name.as(:name)
     end
 
     # Datatype library declaration (same as datatype_library but different name for clarity)
-    rule(:datatype_decl) {
-      keyword("datatypes") >> space >>
-      identifier.as(:prefix) >> space? >>
-      str("=") >> space? >>
-      string_literal.as(:uri)
-    }
+    rule(:datatype_decl) do
+      keyword('datatypes') >> space >>
+        identifier.as(:prefix) >> space? >>
+        str('=') >> space? >>
+        string_literal.as(:uri)
+    end
 
     # String literal with optional concatenation using ~ operator
     # Supports escape sequences: \x{HEX}, \", \\, \n, \r, \t
@@ -135,12 +135,12 @@ module Rng
       # Content is any char except """
       # Use a helper: char is content if """ is NOT at this position
       multi_line_double = str('"""') >>
-        (str('"""').absent? >> any).repeat.as(:multi_line_parts) >>
-        str('"""')
+                          (str('"""').absent? >> any).repeat.as(:multi_line_parts) >>
+                          str('"""')
       # Multi-line strings: '''...''' (can span multiple lines)
       multi_line_single = str("'''") >>
-        (str("'''").absent? >> any).repeat.as(:multi_line_parts) >>
-        str("'''")
+                          (str("'''").absent? >> any).repeat.as(:multi_line_parts) >>
+                          str("'''")
       # Single-line double-quote strings with concatenation: "..." ~ "..."
       double_string = str('"') >> string_char.repeat.as(:string_parts) >> str('"')
       # Single-line single-quote strings with concatenation: '...' ~ '...'
@@ -151,9 +151,9 @@ module Rng
                            str("'") >> single_string_char.repeat.as(:concat_string_parts) >> str("'")
 
       multi_line_concat_double = whitespace >> str('~') >> whitespace >>
-                                  str('"""') >>
-                                  (str('"""').absent? >> any).repeat.as(:concat_multi_line_parts) >>
-                                  str('"""')
+                                 str('"""') >>
+                                 (str('"""').absent? >> any).repeat.as(:concat_multi_line_parts) >>
+                                 str('"""')
       multi_line_concat_single = whitespace >> str('~') >> whitespace >>
                                  str("'''") >>
                                  (str("'''").absent? >> any).repeat.as(:concat_multi_line_parts) >>
@@ -171,29 +171,29 @@ module Rng
 
     # Mixed content pattern
     rule(:mixed_pattern) do
-      keyword("mixed") >> whitespace >> str("{") >> whitespace >>
-        content.as(:mixed_content) >> whitespace >> str("}")
+      keyword('mixed') >> whitespace >> str('{') >> whitespace >>
+        content.as(:mixed_content) >> whitespace >> str('}')
     end
 
     # Namespace declarations
     # Default namespace (unprefixed): default namespace = "uri"
     rule(:default_namespace_decl) do
-      keyword("default") >> space >> keyword("namespace") >> space? >>
-        str("=") >> space? >> string_literal.as(:uri)
+      keyword('default') >> space >> keyword('namespace') >> space? >>
+        str('=') >> space? >> string_literal.as(:uri)
     end
 
     # Default namespace (prefixed): default namespace prefix = "uri"
     rule(:default_prefixed_namespace_decl) do
-      keyword("default") >> space >> keyword("namespace") >> space >>
+      keyword('default') >> space >> keyword('namespace') >> space >>
         identifier.as(:prefix) >> space? >>
-        str("=") >> space? >> string_literal.as(:uri)
+        str('=') >> space? >> string_literal.as(:uri)
     end
 
     # Prefixed namespace: namespace prefix = "uri"
     rule(:prefixed_namespace_decl) do
-      keyword("namespace") >> space >>
+      keyword('namespace') >> space >>
         identifier.as(:prefix) >> space? >>
-        str("=") >> space? >> string_literal.as(:uri)
+        str('=') >> space? >> string_literal.as(:uri)
     end
 
     # Any namespace declaration
@@ -207,28 +207,28 @@ module Rng
     rule(:annotation_inner_content) do
       (
         # Nested annotation brackets
-        (str("[") >> annotation_inner_content >> str("]")) |
+        (str('[') >> annotation_inner_content >> str(']')) |
         # String literal (don't let brackets inside strings confuse us)
         string_literal |
         # Any char that's not a bracket, quote
-        (str("[").absent? >> str("]").absent? >> str('"').absent? >> str("'").absent? >>
+        (str('[').absent? >> str(']').absent? >> str('"').absent? >> str("'").absent? >>
          any)
       ).repeat
     end
 
     # Annotation attribute: prefix:local = "value" or local = "value"
     rule(:annotation_attr) do
-      ((namespace_prefix >> identifier | identifier).as(:ann_name) >>
-        whitespace >> str("=") >> whitespace >>
+      (((namespace_prefix >> identifier) | identifier).as(:ann_name) >>
+        whitespace >> str('=') >> whitespace >>
         string_literal.as(:attr_value)).as(:ann_attr)
     end
 
     # Annotation element: prefix:local [ content ] or local [ content ]
     rule(:annotation_elem) do
-      ((namespace_prefix >> identifier | identifier).as(:elem_name) >>
-        whitespace >> str("[") >> whitespace >>
+      (((namespace_prefix >> identifier) | identifier).as(:elem_name) >>
+        whitespace >> str('[') >> whitespace >>
         annotation_inner_content.as(:inner_content) >> whitespace >>
-        str("]")).as(:ann_elem)
+        str(']')).as(:ann_elem)
     end
 
     # A single annotation item (attribute or element)
@@ -241,7 +241,7 @@ module Rng
     rule(:annotation_content) do
       (
         (annotation_item >> (whitespace >> annotation_item).repeat >> whitespace).as(:ann_items) |
-        (str("[").absent? >> str("]").absent? >> str('"').absent? >> str("'").absent? >> any).repeat.as(:raw_content) |
+        (str('[').absent? >> str(']').absent? >> str('"').absent? >> str("'").absent? >> any).repeat.as(:raw_content) |
         whitespace
       )
     end
@@ -250,10 +250,10 @@ module Rng
     # Appears before patterns, definitions, and within annotation elements
     # Handles both empty [] and content-bearing [x = "y"] annotations
     rule(:annotation) do
-      (str("[") >> whitespace >>
+      (str('[') >> whitespace >>
         (
-          (annotation_content >> whitespace >> str("]")).as(:ann) |
-          (str("]").as(:ann))
+          (annotation_content >> whitespace >> str(']')).as(:ann) |
+          str(']').as(:ann)
         )
       )
     end
@@ -272,60 +272,60 @@ module Rng
     rule(:element_def) do
       (doc_comments >> whitespace).maybe.as(:docs) >>
         annotations.maybe.as(:annotations) >>
-        keyword("element") >> whitespace >>
+        keyword('element') >> whitespace >>
         name_class.as(:name) >>
         whitespace >>
-        str("{") >> whitespace >>
+        str('{') >> whitespace >>
         content.maybe.as(:content) >> whitespace >>
-        str("}") >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)
+        str('}') >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)
     end
 
     rule(:attribute_def) do
       (doc_comments >> whitespace).maybe.as(:docs) >>
         annotations.maybe.as(:annotations) >>
-        keyword("attribute") >> whitespace >>
+        keyword('attribute') >> whitespace >>
         name_class.as(:name) >>
         whitespace >>
-        str("{") >>
+        str('{') >>
         whitespace >>
         attribute_content.as(:type) >>
         whitespace >>
-        str("}") >>
-        (str("*") | str("+") | str("?")).maybe.as(:occurrence)
+        str('}') >>
+        (str('*') | str('+') | str('?')).maybe.as(:occurrence)
     end
 
     # Attribute content can be: parenthesized choice, datatype_ref, text, value literal, or choice of values
     rule(:attribute_content) do
       # Parenthesized choice: ( "a" | "b" | "c" ) or ( ref1 | ref2 )
-      (str("(") >> whitespace >>
+      (str('(') >> whitespace >>
        (value_literal | identifier.as(:ref)) >>
-       (whitespace >> str("|") >> whitespace >> (value_literal | identifier.as(:ref))).repeat(1) >>
-       whitespace >> str(")")).as(:paren_choice) |
-      # Datatype except: prefix:type - ( "a" | "b" ) or type - ( "a" | "b" )
-      ((identifier.as(:datatype_prefix) >> str(":") >> identifier.as(:datatype_type) >>
-        whitespace >> str("-") >> whitespace >>
-        str("(") >> whitespace >>
-        value_literal >>
-        (whitespace >> str("|") >> whitespace >> value_literal).repeat(1) >>
-        whitespace >> str(")")).as(:datatype_except)) |
-      ((identifier.as(:datatype_type) >>
-        whitespace >> str("-") >> whitespace >>
-        str("(") >> whitespace >>
-        value_literal >>
-        (whitespace >> str("|") >> whitespace >> value_literal).repeat(1) >>
-        whitespace >> str(")")).as(:datatype_except)) |
-      # Non-parenthesized choice of value literals: "a" | "b" | "c"
-      (value_literal >> (whitespace >> str("|") >> whitespace >> value_literal).repeat(1).as(:value_choice)) |
+       (whitespace >> str('|') >> whitespace >> (value_literal | identifier.as(:ref))).repeat(1) >>
+       whitespace >> str(')')).as(:paren_choice) |
+        # Datatype except: prefix:type - ( "a" | "b" ) or type - ( "a" | "b" )
+        (identifier.as(:datatype_prefix) >> str(':') >> identifier.as(:datatype_type) >>
+          whitespace >> str('-') >> whitespace >>
+          str('(') >> whitespace >>
+          value_literal >>
+          (whitespace >> str('|') >> whitespace >> value_literal).repeat(1) >>
+          whitespace >> str(')')).as(:datatype_except) |
+        (identifier.as(:datatype_type) >>
+          whitespace >> str('-') >> whitespace >>
+          str('(') >> whitespace >>
+          value_literal >>
+          (whitespace >> str('|') >> whitespace >> value_literal).repeat(1) >>
+          whitespace >> str(')')).as(:datatype_except) |
+        # Non-parenthesized choice of value literals: "a" | "b" | "c"
+        (value_literal >> (whitespace >> str('|') >> whitespace >> value_literal).repeat(1).as(:value_choice)) |
         value_literal |
         datatype_ref |
-        keyword("text").as(:text_type) |
+        keyword('text').as(:text_type) |
         identifier.as(:ref)
     end
 
     rule(:datatype_ref) do
-      identifier.as(:prefix) >> str(":") >> identifier.as(:type) >>
-        (whitespace >> str("{") >> whitespace >>
-         param_list.as(:params) >> whitespace >> str("}")).maybe
+      identifier.as(:prefix) >> str(':') >> identifier.as(:type) >>
+        (whitespace >> str('{') >> whitespace >>
+         param_list.as(:params) >> whitespace >> str('}')).maybe
     end
 
     # Parameter list for datatypes (e.g., pattern = "value", minLength = "1")
@@ -335,36 +335,36 @@ module Rng
 
     # Single parameter (e.g., pattern = "value")
     rule(:param_item) do
-      identifier.as(:param_name) >> whitespace >> str("=") >> whitespace >>
+      identifier.as(:param_name) >> whitespace >> str('=') >> whitespace >>
         string_literal.as(:param_value)
     end
 
     # Word boundary - ensure keywords are not followed by identifier characters
     # This prevents "text" from matching "textarea", etc.
-    rule(:word_boundary) { match("[a-zA-Z0-9_-]").absent? }
+    rule(:word_boundary) { match('[a-zA-Z0-9_-]').absent? }
 
     # Keyword patterns with word boundaries
-    rule(:text_def) { (keyword("text") >> word_boundary).as(:text) }
-    rule(:empty_def) { (keyword("empty") >> word_boundary).as(:empty) }
-    rule(:not_allowed_def) { (keyword("notAllowed") >> word_boundary).as(:not_allowed) }
+    rule(:text_def) { (keyword('text') >> word_boundary).as(:text) }
+    rule(:empty_def) { (keyword('empty') >> word_boundary).as(:empty) }
+    rule(:not_allowed_def) { (keyword('notAllowed') >> word_boundary).as(:not_allowed) }
 
     rule(:list_pattern) do
-      keyword("list") >> whitespace >> str("{") >> whitespace >>
-        list_content.as(:list_content) >> whitespace >> str("}")
+      keyword('list') >> whitespace >> str('{') >> whitespace >>
+        list_content.as(:list_content) >> whitespace >> str('}')
     end
 
     rule(:parent_ref) do
-      keyword("parent") >> whitespace >> identifier.as(:parent_pattern)
+      keyword('parent') >> whitespace >> identifier.as(:parent_pattern)
     end
 
     rule(:external_ref) do
-      keyword("external") >> space >> string_literal.as(:external_href)
+      keyword('external') >> space >> string_literal.as(:external_href)
     end
 
     # List content can be: text, datatype references, or other patterns with occurrence markers
     rule(:list_content_item) do
       (datatype_ref | text_def | identifier.as(:ref)) >>
-        (str("*") | str("+") | str("?")).maybe.as(:occurrence)
+        (str('*') | str('+') | str('?')).maybe.as(:occurrence)
     end
 
     rule(:list_content) do
@@ -373,11 +373,11 @@ module Rng
     end
 
     rule(:group_def) do
-      str("(") >>
+      str('(') >>
         whitespace >>
         content.as(:group) >>
         whitespace >>
-        str(")") >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)
+        str(')') >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)
     end
 
     # Named pattern definition (e.g., "myPattern = element foo { text }")
@@ -385,7 +385,7 @@ module Rng
       (doc_comments >> whitespace).maybe.as(:docs) >>
         annotations.maybe >>
         identifier.as(:name) >> whitespace >>
-        (str("|=") | str("&=") | str("=")).as(:operator) >> whitespace >>
+        (str('|=') | str('&=') | str('=')).as(:operator) >> whitespace >>
         pattern_list.as(:pattern)
     end
 
@@ -393,8 +393,8 @@ module Rng
     rule(:start_def) do
       (doc_comments >> whitespace).maybe.as(:docs) >>
         annotations.maybe >>
-        keyword("start") >> whitespace >>
-        (str("|=") | str("&=") | str("=")).as(:operator) >> whitespace >>
+        keyword('start') >> whitespace >>
+        (str('|=') | str('&=') | str('=')).as(:operator) >> whitespace >>
         pattern_list.as(:start_pattern)
     end
 
@@ -402,8 +402,8 @@ module Rng
     rule(:pattern_list) do
       content_item.as(:first) >>
         (
-          (whitespace >> str("&") >> whitespace >> content_item).repeat(1).as(:interleave_items) |
-          (whitespace >> str("|") >> whitespace >> content_item).repeat(1).as(:choice_items) |
+          (whitespace >> str('&') >> whitespace >> content_item).repeat(1).as(:interleave_items) |
+          (whitespace >> str('|') >> whitespace >> content_item).repeat(1).as(:choice_items) |
           (comma? >> content_item).repeat(1).as(:sequence_items)
         ).maybe
     end
@@ -411,22 +411,22 @@ module Rng
     # Choice is handled at content level, not as separate pattern
     rule(:content_item) do
       annotations.maybe >>
-      (element_def | attribute_def |
-        # Datatype subtraction: identifier - ( value|identifier|choice|annotated )
-        (identifier.as(:datatype_name) >>
-          whitespace >> str("-") >> whitespace >>
-          str("(") >> whitespace >>
-          datatype_except_value >>
-          (whitespace >> str("|") >> whitespace >> datatype_except_value).repeat.as(:more_except) >>
-          whitespace >> str(")")).as(:datatype_subtraction) |
-        (text_def >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)) |
-        (empty_def >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)) |
-        (not_allowed_def >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)) |
-        list_pattern | parent_ref | external_ref | group_def | mixed_pattern |
-        grammar_block.as(:grammar_block) |
-        (value_literal >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)) |
-        (datatype_ref >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)) |
-        (identifier.as(:ref) >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)))
+        (element_def | attribute_def |
+          # Datatype subtraction: identifier - ( value|identifier|choice|annotated )
+          (identifier.as(:datatype_name) >>
+            whitespace >> str('-') >> whitespace >>
+            str('(') >> whitespace >>
+            datatype_except_value >>
+            (whitespace >> str('|') >> whitespace >> datatype_except_value).repeat.as(:more_except) >>
+            whitespace >> str(')')).as(:datatype_subtraction) |
+          (text_def >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)) |
+          (empty_def >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)) |
+          (not_allowed_def >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)) |
+          list_pattern | parent_ref | external_ref | group_def | mixed_pattern |
+          grammar_block.as(:grammar_block) |
+          (value_literal >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)) |
+          (datatype_ref >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)) |
+          (identifier.as(:ref) >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)))
     end
 
     # Value that can appear in a datatype except clause
@@ -435,17 +435,17 @@ module Rng
     rule(:datatype_except_value) do
       # Annotated parenthesized content: group_def >> annotation
       (group_def >>
-        whitespace >> str(">>") >> whitespace >>
+        whitespace >> str('>>') >> whitespace >>
         (foreign_element | annotation).as(:annotation)).as(:annotated_except_value) |
-      # Annotated value: value_literal >> identifier [] or value_literal >> [ ... ]
-      ((value_literal | identifier.as(:datatype_name)) >>
-        whitespace >> str(">>") >> whitespace >>
-        (foreign_element | annotation).as(:annotation)).as(:annotated_except_value) |
-      # Regular parenthesized content (without annotation)
-      group_def |
-      # Regular value literal or identifier
-      value_literal |
-      identifier.as(:datatype_name)
+        # Annotated value: value_literal >> identifier [] or value_literal >> [ ... ]
+        ((value_literal | identifier.as(:datatype_name)) >>
+          whitespace >> str('>>') >> whitespace >>
+          (foreign_element | annotation).as(:annotation)).as(:annotated_except_value) |
+        # Regular parenthesized content (without annotation)
+        group_def |
+        # Regular value literal or identifier
+        value_literal |
+        identifier.as(:datatype_name)
     end
 
     # Content can be interleaved with &, a sequence with commas, or alternatives with |
@@ -453,9 +453,9 @@ module Rng
       content_item.as(:first) >>
         (
           # Annotation attachment: pattern >> identifier [] or pattern >> [ content ]
-          (whitespace >> str(">>") >> whitespace >> (foreign_element | annotation).as(:annotation_attached)).repeat(1).as(:annotation_chain) |
-          (whitespace >> str("&") >> whitespace >> content_item).repeat(1).as(:interleave_items) |
-          (whitespace >> str("|") >> whitespace >> content_item).repeat(1).as(:choice_items) |
+          (whitespace >> str('>>') >> whitespace >> (foreign_element | annotation).as(:annotation_attached)).repeat(1).as(:annotation_chain) |
+          (whitespace >> str('&') >> whitespace >> content_item).repeat(1).as(:interleave_items) |
+          (whitespace >> str('|') >> whitespace >> content_item).repeat(1).as(:choice_items) |
           (comma? >> content_item).repeat(1).as(:sequence_items)
         ).maybe
     end
@@ -463,23 +463,23 @@ module Rng
     # Parse balanced braces content - matches everything inside {} including nested {}
     rule(:balanced_braces) do
       (
-        (str("{") >> balanced_braces >> str("}")) |
-        (str("{").absent? >> str("}").absent? >> any)
+        (str('{') >> balanced_braces >> str('}')) |
+        (str('{').absent? >> str('}').absent? >> any)
       ).repeat
     end
 
     # Include directive - capture override as raw text to avoid backtracking
     # Will be parsed with proper scoping in post-processing
     rule(:include_directive) do
-      keyword("include") >> space >> string_literal.as(:href) >> whitespace >>
-        (str("{") >> whitespace >>
+      keyword('include') >> space >> string_literal.as(:href) >> whitespace >>
+        (str('{') >> whitespace >>
          balanced_braces.as(:raw_override) >>
-         whitespace >> str("}")).maybe.as(:override)
+         whitespace >> str('}')).maybe.as(:override)
     end
 
     # Include directive - legacy layout with start_def first
     rule(:include_directive_legacy) do
-      keyword("include") >> space >> string_literal.as(:href) >> whitespace >>
+      keyword('include') >> space >> string_literal.as(:href) >> whitespace >>
         start_def.maybe.as(:start) >> whitespace >>
         (named_pattern | element_def.as(:top_element)).repeat.as(:definitions)
     end
@@ -488,18 +488,18 @@ module Rng
     # e.g., foo [] or rng:foo [ "val" ] or foo [ bar [ "baz" ] ]
     # These are annotation elements that appear as standalone items
     rule(:foreign_element) do
-      (namespace_prefix >> identifier | identifier).as(:foreign_name) >>
+      ((namespace_prefix >> identifier) | identifier).as(:foreign_name) >>
         whitespace >> annotation.as(:foreign_annotation)
     end
 
     # Div block for documentation and grouping
     rule(:div_block) do
-      keyword("div") >> whitespace >> str("{") >> whitespace >>
+      keyword('div') >> whitespace >> str('{') >> whitespace >>
         (start_def.maybe.as(:start) >>
          whitespace >>
          (include_directive >> whitespace).repeat.as(:includes) >>
          ((named_pattern | foreign_element | div_block.as(:nested_div) | element_def.as(:top_element)) >> whitespace).repeat.as(:patterns)) >>
-        whitespace >> str("}")
+        whitespace >> str('}')
     end
 
     # Standalone pattern - like content_item but without element_def/attribute_def
@@ -509,15 +509,15 @@ module Rng
         list_pattern | parent_ref | external_ref | group_def | mixed_pattern |
         datatype_ref |
         value_literal |
-        (identifier.as(:ref) >> (str("*") | str("+") | str("?")).maybe.as(:occurrence)) |
-        (str("*") >> (str("-") >> space >> name_class).maybe.as(:any_name_except)).as(:bare_any_name)
+        (identifier.as(:ref) >> (str('*') | str('+') | str('?')).maybe.as(:occurrence)) |
+        (str('*') >> (str('-') >> space >> name_class).maybe.as(:any_name_except)).as(:bare_any_name)
     end
 
     # Grammar-level choice: allows element foo { empty } | element bar { empty }
     # at the top level of a grammar
     rule(:grammar_choice) do
       (element_def | standalone_pattern).as(:first) >>
-        (whitespace >> str("|") >> whitespace >>
+        (whitespace >> str('|') >> whitespace >>
          (element_def | standalone_pattern)).repeat(1).as(:choice_items)
     end
 
@@ -536,9 +536,9 @@ module Rng
     # Grammar block wrapper - capture content as raw text to avoid backtracking
     # Will be parsed with proper scoping in post-processing
     rule(:grammar_block) do
-      keyword("grammar") >> whitespace >> str("{") >> whitespace >>
+      keyword('grammar') >> whitespace >> str('{') >> whitespace >>
         balanced_braces.as(:raw_grammar) >>
-        whitespace >> str("}")
+        whitespace >> str('}')
     end
 
     # Included file - more flexible than grammar_wrapper
@@ -554,12 +554,12 @@ module Rng
         whitespace >>
         (
           # Grammar block with optional trailing definitions
-          grammar_block.as(:inner_grammar) >>
-          (whitespace >> (named_pattern | element_def.as(:top_element))).repeat.as(:trailing_definitions) |
+          (grammar_block.as(:inner_grammar) >>
+          (whitespace >> (named_pattern | element_def.as(:top_element))).repeat.as(:trailing_definitions)) |
           # Flat grammar (no wrapper)
           grammar |
           # Empty file is also valid
-          str("")
+          str('')
         ) >>
         whitespace
     end
@@ -606,18 +606,18 @@ module Rng
     # because control characters like \x{A} (newline) are forbidden inside
     # single-line quoted strings and must remain escaped.
     def self.preprocess_hex_escapes(input)
-      result = String.new
+      result = +''
       i = 0
       while i < input.length
         # Triple-quoted strings: copy verbatim
         if input[i, 3] == '"""'
           end_idx = input.index('"""', i + 3)
-          end_idx = input.length - 3 unless end_idx
+          end_idx ||= input.length - 3
           result << input[i..end_idx + 2]
           i = end_idx + 3
         elsif input[i, 3] == "'''"
           end_idx = input.index("'''", i + 3)
-          end_idx = input.length - 3 unless end_idx
+          end_idx ||= input.length - 3
           result << input[i..end_idx + 2]
           i = end_idx + 3
         # Single-line double-quoted string: copy verbatim
@@ -650,9 +650,9 @@ module Rng
             hex = input[(i + 3)...end_brace]
             if hex.match?(/\A[0-9a-fA-F]{1,6}\z/)
               code_point = hex.to_i(16)
-              if code_point <= 0x10FFFF && !(code_point >= 0xD800 && code_point <= 0xDFFF) &&
-                  code_point >= 0x20  # Reject control characters outside strings
-                result << [code_point].pack("U")
+              if code_point <= 0x10FFFF && !code_point.between?(0xD800, 0xDFFF) &&
+                 code_point >= 0x20 # Reject control characters outside strings
+                result << [code_point].pack('U')
                 i = end_brace + 1
                 next
               end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "nokogiri"
-require "set"
+require 'nokogiri'
+require 'set'
 
 module Rng
   # RncToRngConverter converts RNC parse trees to RNG XML format.
@@ -16,7 +16,7 @@ module Rng
   #   rng_xml = converter.convert(tree)
   #   grammar = Rng::Grammar.from_xml(rng_xml)
   class RncToRngConverter
-    RNG_NAMESPACE = "http://relaxng.org/ns/structure/1.0"
+    RNG_NAMESPACE = 'http://relaxng.org/ns/structure/1.0'
 
     # Convert a parse tree to RNG XML
     #
@@ -36,11 +36,11 @@ module Rng
       # Validate that element notations in preamble annotations are only used with element/attribute patterns
       validate_preamble_element_notation_usage(tree[:preamble_items], tree[:definitions])
 
-      builder = Nokogiri::XML::Builder.new(encoding: "UTF-8") do |xml|
-        grammar_attrs = { xmlns: "http://relaxng.org/ns/structure/1.0" }
+      builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
+        grammar_attrs = { xmlns: 'http://relaxng.org/ns/structure/1.0' }
         if @has_documentation
-          grammar_attrs[:"xmlns:a"] =
-            "http://relaxng.org/ns/compatibility/annotations/1.0"
+          grammar_attrs[:'xmlns:a'] =
+            'http://relaxng.org/ns/compatibility/annotations/1.0'
         end
 
         xml.grammar(grammar_attrs) do
@@ -108,7 +108,7 @@ module Rng
 
                 # Check if override has any content
                 has_content = (override[:start] && override[:start][:start_pattern]) ||
-                  (override[:patterns] && !override[:patterns].empty?)
+                              (override[:patterns] && !override[:patterns].empty?)
 
                 if has_content
                   xml.include(href: href) do
@@ -125,9 +125,9 @@ module Rng
                       if pattern_item.key?(:name)
                         # Named pattern in override
                         name = process_identifier(pattern_item[:name])
-                        operator = pattern_item[:operator] ? extract_string(pattern_item[:operator]) : "="
+                        operator = pattern_item[:operator] ? extract_string(pattern_item[:operator]) : '='
 
-                        if operator == "="
+                        if operator == '='
                           xml.define(name: name) do
                             if pattern_item[:docs]
                               add_documentation(xml,
@@ -136,7 +136,7 @@ module Rng
                             process_pattern_list(xml, pattern_item[:pattern])
                           end
                         else
-                          combine_type = operator == "|=" ? "choice" : "interleave"
+                          combine_type = operator == '|=' ? 'choice' : 'interleave'
                           xml.define(name: name, combine: combine_type) do
                             if pattern_item[:docs]
                               add_documentation(xml,
@@ -165,9 +165,9 @@ module Rng
             elsif def_item.key?(:name)
               # Named pattern - handle augmentation operators
               name = process_identifier(def_item[:name])
-              operator = def_item[:operator] ? extract_string(def_item[:operator]) : "="
+              operator = def_item[:operator] ? extract_string(def_item[:operator]) : '='
 
-              if operator == "=" || !defined_names.include?(name)
+              if operator == '=' || !defined_names.include?(name)
                 # First definition or normal definition
                 xml.define(name: name) do
                   add_documentation(xml, def_item) if def_item[:docs]
@@ -176,7 +176,7 @@ module Rng
                 defined_names.add(name)
               else
                 # Augmentation - use combine attribute
-                combine_type = operator == "|=" ? "choice" : "interleave"
+                combine_type = operator == '|=' ? 'choice' : 'interleave'
                 xml.define(name: name, combine: combine_type) do
                   add_documentation(xml, def_item) if def_item[:docs]
                   process_pattern_list(xml, def_item[:pattern])
@@ -214,17 +214,13 @@ module Rng
       return false unless tree.is_a?(Hash)
 
       tree.each do |key, value|
-        if %i[documentation docs].include?(key) && value
-          return true
-        end
+        return true if %i[documentation docs].include?(key) && value
 
         if value.is_a?(Hash)
           return true if has_documentation_comments?(value)
         elsif value.is_a?(Array)
           value.each do |item|
-            if item.is_a?(Hash) && has_documentation_comments?(item)
-              return true
-            end
+            return true if item.is_a?(Hash) && has_documentation_comments?(item)
           end
         end
       end
@@ -244,19 +240,19 @@ module Rng
         text = line[:doc_line]
         text = extract_string(text) if text
         # Strip leading space from ## comment
-        text = text.sub(/^\s+/, "") if text
+        text = text.sub(/^\s+/, '') if text
         text
       end.join("\n")
     end
 
     # Add documentation element if present
     def add_documentation(xml, item)
-      if item[:docs]
-        doc_text = extract_documentation(item[:docs])
-        if doc_text && !doc_text.empty?
-          xml.send(:"a:documentation", doc_text)
-        end
-      end
+      return unless item[:docs]
+
+      doc_text = extract_documentation(item[:docs])
+      return unless doc_text && !doc_text.empty?
+
+      xml.send(:'a:documentation', doc_text)
     end
 
     # Add annotations (foreign attributes and elements) if present
@@ -329,15 +325,15 @@ module Rng
     # Map of character escapes to actual characters
     CHAR_ESCAPE_MAP = {
       '"' => '"',
-      "\\" => "\\",
-      "n" => "\n",
-      "r" => "\r",
-      "t" => "\t",
+      '\\' => '\\',
+      'n' => "\n",
+      'r' => "\r",
+      't' => "\t",
       # RELAX NG character class escapes - preserve backslash
-      "i" => "\\i",
-      "c" => "\\c",
-      "d" => "\\d",
-      "w" => "\\w",
+      'i' => '\\i',
+      'c' => '\\c',
+      'd' => '\\d',
+      'w' => '\\w'
     }.freeze
 
     # Validate Unicode code point
@@ -348,7 +344,7 @@ module Rng
     # @raise [ArgumentError] If the code point is invalid (surrogate or out of range)
     def validate_unicode_codepoint(code_point, context = :string)
       # Check for surrogate pairs (0xD800-0xDFFF)
-      if code_point >= 0xD800 && code_point <= 0xDFFF
+      if code_point.between?(0xD800, 0xDFFF)
         raise ArgumentError,
               "Invalid Unicode: surrogate code point U+#{code_point.to_s(16).upcase} is not allowed"
       end
@@ -361,7 +357,7 @@ module Rng
 
       # Check for whitespace in identifiers
       if context == :identifier
-        char = [code_point].pack("U")
+        char = [code_point].pack('U')
         if char.match?(/\s/)
           raise ArgumentError,
                 "Invalid identifier: whitespace character U+#{code_point.to_s(16).upcase} is not allowed in identifiers"
@@ -377,7 +373,7 @@ module Rng
     # @param context [Symbol] Context where the text is used (:identifier or :string)
     # @return [String] The processed string
     def process_escape_sequences(parts, context = :string)
-      return "" unless parts
+      return '' unless parts
       return parts if parts.is_a?(String)
 
       parts = [parts] unless parts.is_a?(Array)
@@ -391,12 +387,10 @@ module Rng
             code_point = hex.to_i(16)
 
             # DEBUG output
-            if ENV['RNG_DEBUG']
-              puts "DEBUG: Processing hex escape: #{hex} -> code_point: 0x#{code_point.to_s(16).upcase}"
-            end
+            puts "DEBUG: Processing hex escape: #{hex} -> code_point: 0x#{code_point.to_s(16).upcase}" if ENV['RNG_DEBUG']
 
             validate_unicode_codepoint(code_point, context)
-            [code_point].pack("U")
+            [code_point].pack('U')
           elsif part[:char_escape]
             # Map character escape
             char = extract_string(part[:char_escape][:char])
@@ -404,7 +398,7 @@ module Rng
           elsif part[:backslash_escape]
             # Backslash escape in identifier: \x -> x
             if part[:backslash_escape][:escaped_backslash]
-              "\\"
+              '\\'
             elsif part[:backslash_escape][:escaped_char]
               extract_string(part[:backslash_escape][:escaped_char])
             elsif part[:backslash_escape][:escaped_keyword]
@@ -427,8 +421,9 @@ module Rng
 
     # Extract multi-line triple-quoted string content (no escape processing)
     def extract_multi_line_parts(parts)
-      return "" unless parts
+      return '' unless parts
       return extract_string(parts) unless parts.is_a?(Array)
+
       parts.map { |p| extract_string(p) }.join
     end
 
@@ -466,23 +461,21 @@ module Rng
           uri = process_string_literal(uri_info)
 
           # TC 13: xmlns prefix is reserved
-          if prefix == "xmlns"
-            raise StandardError, "namespace prefix 'xmlns' is reserved"
-          end
+          raise StandardError, "namespace prefix 'xmlns' is reserved" if prefix == 'xmlns'
 
           # TC 14: xmlns URI cannot be used as a namespace URI
-          if uri == "http://www.w3.org/2000/xmlns"
-            raise StandardError, "namespace URI 'http://www.w3.org/2000/xmlns' is reserved"
-          end
+          raise StandardError, "namespace URI 'http://www.w3.org/2000/xmlns' is reserved" if uri == 'http://www.w3.org/2000/xmlns'
 
           # TC 15: xml prefix must map to the XML namespace URI
-          if prefix == "xml" && uri != "http://www.w3.org/XML/1998/namespace"
-            raise StandardError, "namespace prefix 'xml' must be bound to 'http://www.w3.org/XML/1998/namespace'"
+          if prefix == 'xml' && uri != 'http://www.w3.org/XML/1998/namespace'
+            raise StandardError,
+                  "namespace prefix 'xml' must be bound to 'http://www.w3.org/XML/1998/namespace'"
           end
 
           # TC 16: XML namespace URI must use xml prefix
-          if uri == "http://www.w3.org/XML/1998/namespace" && prefix != "xml"
-            raise StandardError, "namespace URI 'http://www.w3.org/XML/1998/namespace' must use prefix 'xml'"
+          if uri == 'http://www.w3.org/XML/1998/namespace' && prefix != 'xml'
+            raise StandardError,
+                  "namespace URI 'http://www.w3.org/XML/1998/namespace' must use prefix 'xml'"
           end
 
           @namespace_prefixes[prefix] = uri
@@ -499,6 +492,7 @@ module Rng
     # Validate annotations in preamble notations (TC 11, 12, 18, 70, 71)
     def validate_preamble_annotations(ann_items, seen_ann_attrs)
       return unless ann_items
+
       items = ann_items.is_a?(Array) ? ann_items : [ann_items]
 
       items.each do |ann|
@@ -524,11 +518,13 @@ module Rng
 
       preamble_items_array.each do |item|
         next unless item.is_a?(Hash)
+
         if item[:ann] && item[:ann][:ann_items]
           ann_items = item[:ann][:ann_items]
           ann_items_array = ann_items.is_a?(Array) ? ann_items : [ann_items]
           ann_items_array.each do |ann|
             next unless ann.is_a?(Hash)
+
             if ann[:ann_elem]
               has_element_notation = true
               break
@@ -548,15 +544,15 @@ module Rng
                                 first_pattern.key?(:top_choice) ||
                                 first_pattern.key?(:attribute_def)
 
-      unless is_element_or_attribute
-        raise StandardError, "element notation in annotation must be used with element or attribute pattern"
-      end
+      return if is_element_or_attribute
+
+      raise StandardError, 'element notation in annotation must be used with element or attribute pattern'
     end
 
     # Validate a single annotation attribute in preamble
     def validate_annotation_attribute(ann_attr, seen_ann_attrs)
       name_node = ann_attr[:ann_name]
-      value_node = ann_attr[:attr_value]
+      ann_attr[:attr_value]
 
       # Extract prefix and local name
       prefix = name_node[:prefix] ? process_identifier(name_node[:prefix]) : nil
@@ -564,9 +560,7 @@ module Rng
 
       # TC 11: Check for duplicate annotation attributes (same prefix:local)
       attr_key = prefix ? "#{prefix}:#{local}" : local
-      if seen_ann_attrs.key?(attr_key)
-        raise StandardError, "duplicate annotation attribute '#{attr_key}'"
-      end
+      raise StandardError, "duplicate annotation attribute '#{attr_key}'" if seen_ann_attrs.key?(attr_key)
 
       # TC 12: Check for duplicate even with different prefixes that map to same URI
       if prefix
@@ -575,6 +569,7 @@ module Rng
           # Check if any previously seen prefix maps to the same URI with same local name
           seen_ann_attrs.each do |key, info|
             next unless info[:uri] == prefix_uri && info[:local] == local
+
             raise StandardError, "duplicate annotation attribute '#{attr_key}' (same as '#{key}')"
           end
         end
@@ -583,14 +578,12 @@ module Rng
       seen_ann_attrs[attr_key] = { uri: prefix_uri, local: local }
 
       # TC 18: xmlns attribute is forbidden in annotations
-      if local == "xmlns" && prefix.nil?
-        raise StandardError, "xmlns attribute is not allowed in annotations"
-      end
+      raise StandardError, 'xmlns attribute is not allowed in annotations' if local == 'xmlns' && prefix.nil?
 
       # TC 70: RNG namespace attributes forbidden
-      if prefix && @namespace_prefixes[prefix] == RNG_NAMESPACE
-        raise StandardError, "attributes in the RELAX NG namespace are not allowed"
-      end
+      return unless prefix && @namespace_prefixes[prefix] == RNG_NAMESPACE
+
+      raise StandardError, 'attributes in the RELAX NG namespace are not allowed'
     end
 
     # Validate a single annotation element in preamble
@@ -599,18 +592,19 @@ module Rng
 
       # Extract prefix and local name
       prefix = name_node[:prefix] ? process_identifier(name_node[:prefix]) : nil
-      local = process_identifier(name_node)
+      process_identifier(name_node)
 
       # TC 71: RNG namespace elements forbidden
-      if prefix && @namespace_prefixes[prefix] == RNG_NAMESPACE
-        raise StandardError, "elements in the RELAX NG namespace are not allowed"
-      end
+      return unless prefix && @namespace_prefixes[prefix] == RNG_NAMESPACE
+
+      raise StandardError, 'elements in the RELAX NG namespace are not allowed'
     end
 
     # Resolve a namespace prefix to a URI
     # Returns the prefix itself if not found (for backward compatibility)
     def resolve_namespace_prefix(prefix)
       return prefix unless prefix
+
       @namespace_prefixes.fetch(prefix, prefix)
     end
 
@@ -619,7 +613,7 @@ module Rng
     # @param str_node [Hash] String node from parse tree (can have :concatenations)
     # @return [String] Concatenated string value
     def process_string_literal(str_node)
-      return "" unless str_node
+      return '' unless str_node
       return str_node if str_node.is_a?(String)
 
       # Process base string with potential escapes
@@ -631,7 +625,7 @@ module Rng
                  elsif str_node[:string]
                    extract_string(str_node[:string])
                  else
-                   ""
+                   ''
                  end
 
       # Handle concatenation
@@ -643,7 +637,7 @@ module Rng
 
       concatenations.each do |concat|
         next unless concat
-        next unless concat.is_a?(Hash)  # FIX: Validate concat is a Hash
+        next unless concat.is_a?(Hash) # FIX: Validate concat is a Hash
 
         if concat[:concat_multi_line_parts]
           parts << extract_multi_line_parts(concat[:concat_multi_line_parts])
@@ -737,9 +731,7 @@ module Rng
         name_obj = item[:name]
 
         # Unwrap the extra :name level from name_class.as(:name)
-        if name_obj.is_a?(Hash) && name_obj.key?(:name)
-          name_obj = name_obj[:name]
-        end
+        name_obj = name_obj[:name] if name_obj.is_a?(Hash) && name_obj.key?(:name)
 
         # Skip if name_obj is nil (shouldn't happen but be defensive)
         return if name_obj.nil?
@@ -767,10 +759,8 @@ module Rng
           name_choice = name_obj[:name_choice]
           # Collect all names in the choice
           all_names = [name_choice[:local_name]]
-          if name_choice[:name_choice_items]
-            name_choice[:name_choice_items].each do |nc_item|
-              all_names << nc_item[:local_name] if nc_item[:local_name]
-            end
+          name_choice[:name_choice_items]&.each do |nc_item|
+            all_names << nc_item[:local_name] if nc_item[:local_name]
           end
         else
           # Fallback - treat as regular name
@@ -784,7 +774,8 @@ module Rng
         occurrence = item[:occurrence]
 
         attribute_block = lambda do |xml_ctx|
-          if attr_name_type == :any_name
+          case attr_name_type
+          when :any_name
             # Generate <attribute><anyName> with optional <except>
             xml_ctx.attribute do
               add_documentation(xml_ctx, item) if item[:docs]
@@ -797,7 +788,7 @@ module Rng
               end
               process_attribute_type(xml_ctx, item[:type])
             end
-          elsif attr_name_type == :ns_name
+          when :ns_name
             # Generate <attribute><nsName> with ns attribute and optional <except>
             xml_ctx.attribute do
               add_documentation(xml_ctx, item) if item[:docs]
@@ -810,7 +801,7 @@ module Rng
               end
               process_attribute_type(xml_ctx, item[:type])
             end
-          elsif attr_name_type == :name_choice
+          when :name_choice
             # Generate <attribute><choice><name>...<name>...</choice>...</attribute>
             add_documentation(xml_ctx, item) if item[:docs]
             xml_ctx.attribute do
@@ -833,9 +824,9 @@ module Rng
         if occurrence
           # Wrap in occurrence element
           occurrence_tag = case occurrence.to_s
-                           when "*" then "zeroOrMore"
-                           when "+" then "oneOrMore"
-                           when "?" then "optional"
+                           when '*' then 'zeroOrMore'
+                           when '+' then 'oneOrMore'
+                           when '?' then 'optional'
                            end
           xml.send(occurrence_tag) do
             attribute_block.call(xml)
@@ -851,14 +842,10 @@ module Rng
         name_obj = item[:name]
 
         # Unwrap the extra :name level from name_class.as(:name)
-        if name_obj.is_a?(Hash) && name_obj.key?(:name)
-          name_obj = name_obj[:name]
-        end
+        name_obj = name_obj[:name] if name_obj.is_a?(Hash) && name_obj.key?(:name)
 
         # Unwrap name_choice from name_class.as(:name_choice)
-        if name_obj.is_a?(Hash) && name_obj.key?(:name_choice)
-          name_obj = name_obj[:name_choice]
-        end
+        name_obj = name_obj[:name_choice] if name_obj.is_a?(Hash) && name_obj.key?(:name_choice)
 
         if name_obj.key?(:any_name)
           # anyName wildcard - no name attribute needed, will be handled separately
@@ -896,7 +883,8 @@ module Rng
         occurrence = item[:occurrence]
 
         element_block = lambda do |xml_ctx|
-          if element_name_type == :any_name
+          case element_name_type
+          when :any_name
             # Generate <anyName> with optional <except>
             xml_ctx.element do
               add_documentation(xml_ctx, item) if item[:docs]
@@ -909,7 +897,7 @@ module Rng
               end
               process_element_content(xml_ctx, item[:content]) if item[:content]
             end
-          elsif element_name_type == :ns_name
+          when :ns_name
             # Generate <nsName> with ns attribute and optional <except>
             xml_ctx.element do
               add_documentation(xml_ctx, item) if item[:docs]
@@ -922,21 +910,21 @@ module Rng
               end
               process_element_content(xml_ctx, item[:content]) if item[:content]
             end
-          elsif element_name_type == :name_choice
+          when :name_choice
             # Element with choice of names (e.g., element foo|bar { ... })
             xml_ctx.element do
               add_documentation(xml_ctx, item) if item[:docs]
               xml_ctx.choice do
                 choice_names.each do |name_part|
                   name_str = if name_part.is_a?(Hash) && name_part[:identifier_parts]
-                    process_identifier(name_part)
-                  elsif name_part.is_a?(Hash) && name_part[:local_name]
-                    process_identifier(name_part[:local_name])
-                  elsif name_part.is_a?(Hash) && name_part[:prefix]
-                    process_identifier(name_part)
-                  else
-                    name_part.to_s
-                  end
+                               process_identifier(name_part)
+                             elsif name_part.is_a?(Hash) && name_part[:local_name]
+                               process_identifier(name_part[:local_name])
+                             elsif name_part.is_a?(Hash) && name_part[:prefix]
+                               process_identifier(name_part)
+                             else
+                               name_part.to_s
+                             end
                   xml_ctx.name(name_str)
                 end
               end
@@ -954,9 +942,9 @@ module Rng
         if occurrence
           # Wrap in occurrence element
           occurrence_tag = case occurrence.to_s
-                           when "*" then "zeroOrMore"
-                           when "+" then "oneOrMore"
-                           when "?" then "optional"
+                           when '*' then 'zeroOrMore'
+                           when '+' then 'oneOrMore'
+                           when '?' then 'optional'
                            end
 
           xml.send(occurrence_tag) do
@@ -966,11 +954,11 @@ module Rng
           element_block.call(xml)
         end
       elsif item.key?(:text)
-        xml.parent << Nokogiri::XML::Node.new("text", xml.doc)
+        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
       elsif item.key?(:empty)
-        xml.parent << Nokogiri::XML::Node.new("empty", xml.doc)
+        xml.parent << Nokogiri::XML::Node.new('empty', xml.doc)
       elsif item.key?(:not_allowed)
-        xml.parent << Nokogiri::XML::Node.new("notAllowed", xml.doc)
+        xml.parent << Nokogiri::XML::Node.new('notAllowed', xml.doc)
       elsif item.key?(:list_content)
         xml.list do
           process_list_content(xml, item[:list_content])
@@ -984,9 +972,9 @@ module Rng
 
         if occurrence
           occurrence_tag = case occurrence.to_s
-                           when "*" then "zeroOrMore"
-                           when "+" then "oneOrMore"
-                           when "?" then "optional"
+                           when '*' then 'zeroOrMore'
+                           when '+' then 'oneOrMore'
+                           when '?' then 'optional'
                            end
 
           xml.send(occurrence_tag) do
@@ -1007,15 +995,14 @@ module Rng
       elsif item.key?(:ref)
         # Reference to a named pattern
         ref_name = process_identifier(item[:ref])
-        if ref_name == "-"
-          raise StandardError, "subtraction operator '-' cannot be used as a pattern"
-        end
+        raise StandardError, "subtraction operator '-' cannot be used as a pattern" if ref_name == '-'
+
         xml.ref(name: ref_name)
       elsif item.key?(:prefix) && item.key?(:type)
         # Datatype reference (e.g., xsd:string { maxLength = "100" })
         data_attrs = {
           type: process_identifier(item[:type]),
-          datatypeLibrary: "http://www.w3.org/2001/XMLSchema-datatypes",
+          datatypeLibrary: 'http://www.w3.org/2001/XMLSchema-datatypes'
         }
         if item[:params]
           xml.data(data_attrs) do
@@ -1036,13 +1023,14 @@ module Rng
         # Inline grammar block
         grammar_data = item[:grammar_block]
         inner = grammar_data[:inner_grammar] || grammar_data
-        xml.grammar(xmlns: "http://relaxng.org/ns/structure/1.0") do
+        xml.grammar(xmlns: 'http://relaxng.org/ns/structure/1.0') do
           # Process start
           if inner[:start]
             xml.start do
               start_pattern = inner[:start]
               if start_pattern.is_a?(Hash) && start_pattern.key?(:start_pattern)
-                process_pattern_list(xml, start_pattern[:start_pattern])
+                process_pattern_list(xml,
+                                     start_pattern[:start_pattern])
               end
             end
           end
@@ -1174,29 +1162,28 @@ module Rng
 
       item_block = lambda do |xml_ctx|
         if item.key?(:text)
-          xml_ctx.parent << Nokogiri::XML::Node.new("text", xml_ctx.doc)
+          xml_ctx.parent << Nokogiri::XML::Node.new('text', xml_ctx.doc)
         elsif item.key?(:prefix)
           # Datatype reference
           data_attrs = {
             type: process_identifier(item[:type]),
-            datatypeLibrary: "http://www.w3.org/2001/XMLSchema-datatypes",
+            datatypeLibrary: 'http://www.w3.org/2001/XMLSchema-datatypes'
           }
           xml_ctx.data(data_attrs)
         elsif item.key?(:ref)
           # Reference to named pattern
           ref_name = process_identifier(item[:ref])
-          if ref_name == "-"
-            raise StandardError, "subtraction operator '-' cannot be used as a pattern"
-          end
+          raise StandardError, "subtraction operator '-' cannot be used as a pattern" if ref_name == '-'
+
           xml_ctx.ref(name: ref_name)
         end
       end
 
       if occurrence
         occurrence_tag = case occurrence
-                         when "*" then "zeroOrMore"
-                         when "+" then "oneOrMore"
-                         when "?" then "optional"
+                         when '*' then 'zeroOrMore'
+                         when '+' then 'oneOrMore'
+                         when '?' then 'optional'
                          end
         xml.send(occurrence_tag) do
           item_block.call(xml)
@@ -1245,23 +1232,19 @@ module Rng
 
         if parent_type == :any_name
           # anyName except must not contain anyName
-          raise StandardError, "anyName except must not contain anyName" if item.key?(:any_name)
+          raise StandardError, 'anyName except must not contain anyName' if item.key?(:any_name)
         elsif parent_type == :ns_name
           # nsName except must contain only name elements
-          if item.key?(:any_name)
-            raise StandardError, "nsName except must not contain anyName"
-          end
-          if item.key?(:ns_name)
-            raise StandardError, "nsName except must not contain nsName"
-          end
+          raise StandardError, 'nsName except must not contain anyName' if item.key?(:any_name)
+          raise StandardError, 'nsName except must not contain nsName' if item.key?(:ns_name)
         end
       end
     end
 
     # Process attribute type content (factored out for wildcard support)
     def process_attribute_type(xml, type_info)
-      if type_info == "text" || (type_info.is_a?(Hash) && type_info.key?(:text_type))
-        xml.parent << Nokogiri::XML::Node.new("text", xml.doc)
+      if type_info == 'text' || (type_info.is_a?(Hash) && type_info.key?(:text_type))
+        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
       elsif type_info.is_a?(Hash) && type_info.key?(:value_choice)
         # Choice of value literals
         xml.choice do
@@ -1279,7 +1262,7 @@ module Rng
         # Datatype reference
         data_attrs = {
           type: process_identifier(type_info[:type]),
-          datatypeLibrary: "http://www.w3.org/2001/XMLSchema-datatypes",
+          datatypeLibrary: 'http://www.w3.org/2001/XMLSchema-datatypes'
         }
 
         # Check if datatype has parameters
@@ -1297,11 +1280,11 @@ module Rng
           xml.data(data_attrs)
         end
       end
-      end
+    end
 
     # Process data parameters (e.g., maxLength = "100")
     def process_data_params(xml, params)
-      params = params.is_a?(Array) ? params : [params]
+      params = [params] unless params.is_a?(Array)
       params.each do |param|
         param_name = process_identifier(param[:param_name])
         param_value = process_string_literal(param[:param_value])
@@ -1311,97 +1294,97 @@ module Rng
 
     # Process a div block for documentation and grouping
     def process_div_block(xml, div_block)
-        xml.div do
-          # Process start if present
-          if div_block[:start] && div_block[:start][:start_pattern]
-            xml.start do
-              process_pattern_list(xml, div_block[:start][:start_pattern])
-            end
+      xml.div do
+        # Process start if present
+        if div_block[:start] && div_block[:start][:start_pattern]
+          xml.start do
+            process_pattern_list(xml, div_block[:start][:start_pattern])
           end
+        end
 
-          # Process includes if present
-          div_block[:includes]&.each do |include_item|
-            href = process_string_literal(include_item[:href])
+        # Process includes if present
+        div_block[:includes]&.each do |include_item|
+          href = process_string_literal(include_item[:href])
 
-            if include_item[:override]
-              # Include with override block - override is properly scoped
-              override = include_item[:override]
+          if include_item[:override]
+            # Include with override block - override is properly scoped
+            override = include_item[:override]
 
-              # Check if override has any content
-              has_content = (override[:start] && override[:start][:start_pattern]) ||
-                (override[:patterns] && !override[:patterns].empty?)
+            # Check if override has any content
+            has_content = (override[:start] && override[:start][:start_pattern]) ||
+                          (override[:patterns] && !override[:patterns].empty?)
 
-              if has_content
-                xml.include(href: href) do
-                  # Process override start if present
-                  if override[:start] && override[:start][:start_pattern]
-                    xml.start do
-                      process_pattern_list(xml,
-                                           override[:start][:start_pattern])
-                    end
-                  end
-
-                  # Process override patterns (named patterns, div blocks, and top-level elements)
-                  override[:patterns]&.each do |pattern_item|
-                    if pattern_item.key?(:name)
-                      name = process_identifier(pattern_item[:name])
-                      operator = pattern_item[:operator] ? extract_string(pattern_item[:operator]) : "="
-                      if operator == "="
-                        xml.define(name: name) do
-                          process_pattern_list(xml, pattern_item[:pattern])
-                        end
-                      else
-                        combine_type = operator == "|=" ? "choice" : "interleave"
-                        xml.define(name: name, combine: combine_type) do
-                          process_pattern_list(xml, pattern_item[:pattern])
-                        end
-                      end
-                    elsif pattern_item.key?(:top_element)
-                      process_content_item(xml, pattern_item[:top_element])
-                    elsif pattern_item.key?(:div)
-                      process_div_block(xml, pattern_item[:div])
-                    end
+            if has_content
+              xml.include(href: href) do
+                # Process override start if present
+                if override[:start] && override[:start][:start_pattern]
+                  xml.start do
+                    process_pattern_list(xml,
+                                         override[:start][:start_pattern])
                   end
                 end
-              else
-                # Empty override block
-                xml.include(href: href)
+
+                # Process override patterns (named patterns, div blocks, and top-level elements)
+                override[:patterns]&.each do |pattern_item|
+                  if pattern_item.key?(:name)
+                    name = process_identifier(pattern_item[:name])
+                    operator = pattern_item[:operator] ? extract_string(pattern_item[:operator]) : '='
+                    if operator == '='
+                      xml.define(name: name) do
+                        process_pattern_list(xml, pattern_item[:pattern])
+                      end
+                    else
+                      combine_type = operator == '|=' ? 'choice' : 'interleave'
+                      xml.define(name: name, combine: combine_type) do
+                        process_pattern_list(xml, pattern_item[:pattern])
+                      end
+                    end
+                  elsif pattern_item.key?(:top_element)
+                    process_content_item(xml, pattern_item[:top_element])
+                  elsif pattern_item.key?(:div)
+                    process_div_block(xml, pattern_item[:div])
+                  end
+                end
               end
             else
-              # Include without override block
+              # Empty override block
               xml.include(href: href)
             end
+          else
+            # Include without override block
+            xml.include(href: href)
           end
+        end
 
-          # Process patterns (defines, nested divs, and top-level elements)
-          div_block[:patterns]&.each do |pattern_item|
-            if pattern_item.key?(:name)
-              # Named pattern definition
-              name = process_identifier(pattern_item[:name])
-              operator = pattern_item[:operator] ? extract_string(pattern_item[:operator]) : "="
-              if operator == "="
-                xml.define(name: name) do
-                  process_pattern_list(xml, pattern_item[:pattern])
-                end
-              else
-                combine_type = operator == "|=" ? "choice" : "interleave"
-                xml.define(name: name, combine: combine_type) do
-                  process_pattern_list(xml, pattern_item[:pattern])
-                end
+        # Process patterns (defines, nested divs, and top-level elements)
+        div_block[:patterns]&.each do |pattern_item|
+          if pattern_item.key?(:name)
+            # Named pattern definition
+            name = process_identifier(pattern_item[:name])
+            operator = pattern_item[:operator] ? extract_string(pattern_item[:operator]) : '='
+            if operator == '='
+              xml.define(name: name) do
+                process_pattern_list(xml, pattern_item[:pattern])
               end
-            elsif pattern_item.key?(:nested_div)
-              # Nested div block
-              process_div_block(xml, pattern_item[:nested_div])
-            elsif pattern_item.key?(:top_element)
-              # Top-level element
-              process_content_item(xml, pattern_item[:top_element])
-            elsif pattern_item.key?(:foreign_name)
-              # Foreign element annotation - emit as foreign element in RNG XML
-              process_foreign_element(xml, pattern_item)
+            else
+              combine_type = operator == '|=' ? 'choice' : 'interleave'
+              xml.define(name: name, combine: combine_type) do
+                process_pattern_list(xml, pattern_item[:pattern])
+              end
             end
+          elsif pattern_item.key?(:nested_div)
+            # Nested div block
+            process_div_block(xml, pattern_item[:nested_div])
+          elsif pattern_item.key?(:top_element)
+            # Top-level element
+            process_content_item(xml, pattern_item[:top_element])
+          elsif pattern_item.key?(:foreign_name)
+            # Foreign element annotation - emit as foreign element in RNG XML
+            process_foreign_element(xml, pattern_item)
           end
         end
       end
+    end
 
     # Process a foreign element annotation (e.g., foo [] or rng:foo [ "val" ])
     # Emits the foreign element directly in the RNG XML
@@ -1415,9 +1398,7 @@ module Rng
         # ann_data is {ann: {ann_items: ...}} or could be {ann_items: ...}
         ann_data = ann_data[:ann] if ann_data.is_a?(Hash) && ann_data[:ann]
         ann_items = ann_data.is_a?(Hash) ? ann_data[:ann_items] : nil
-        if ann_items
-          validate_preamble_annotations(ann_items, @seen_ann_attrs ||={})
-        end
+        validate_preamble_annotations(ann_items, @seen_ann_attrs ||= {}) if ann_items
       end
 
       # Emit as an empty foreign element (content is annotation-only, ignored in RNG)

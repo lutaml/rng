@@ -1,0 +1,101 @@
+---
+title: Converting RNG to RNC
+layout: default
+nav_order: 3
+parent: Guides
+---
+
+= Converting Between RNG and RNC
+
+The RNG gem supports converting between RNG XML format and RNC compact syntax.
+
+== RNG to RNC Conversion
+
+Convert a grammar parsed from RNG XML to RNC compact syntax:
+
+[source,ruby]
+----
+require 'rng'
+
+# Parse RNG XML
+rng_xml = File.read('schema.rng')
+grammar = Rng.parse(rng_xml)
+
+# Convert to RNC
+rnc_output = Rng.to_rnc(grammar)
+
+puts rnc_output
+----
+
+== RNC to RNG Conversion
+
+Convert RNC compact syntax to RNG XML:
+
+[source,ruby]
+----
+require 'rng'
+
+# Parse RNC
+rnc_text = File.read('schema.rnc')
+grammar = Rng.parse_rnc(rnc_text)
+
+# Convert to RNG XML
+rng_xml = grammar.to_xml
+
+puts rng_xml
+----
+
+== Using the CLI
+
+The gem includes a CLI for quick conversions:
+
+[source,bash]
+----
+# RNG to RNC
+rng convert schema.rng -O rnc -o schema_converted.rnc
+
+# RNC to RNG
+rng convert schema.rnc -O rng -o schema_converted.rng
+----
+
+== Round-Trip Conversion
+
+The gem is designed to produce correct output that can be re-parsed:
+
+[source,ruby]
+----
+# Parse RNC
+grammar1 = Rng.parse_rnc(rnc_text)
+
+# Convert to RNG and back to RNC
+rng_xml = grammar1.to_xml
+grammar2 = Rng.parse(rng_xml)
+rnc_output = Rng.to_rnc(grammar2)
+
+# Both grammars should be equivalent
+----
+
+== Limitations
+
+1. **Whitespace handling**: Whitespace in RNC is normalized during parsing
+2. **Comments**: RNC comments are not preserved in RNG XML output
+3. **Foreign elements**: Elements from non-RNG namespaces are dropped
+4. **Name classes**: Complex name classes may serialize differently but remain semantically equivalent
+
+== Format Selection
+
+The conversion direction is inferred from the input format:
+
+| Input Format | Output Format |
+|--------------|---------------|
+| `.rnc` file  | RNG XML       |
+| `.rng` file  | RNC           |
+| Unknown      | RNG XML       |
+
+Use explicit format flags when the inference is incorrect:
+
+[source,bash]
+----
+rng convert input.rnc output.rng -O rng
+rng convert input.rng output.rnc -O rnc
+----

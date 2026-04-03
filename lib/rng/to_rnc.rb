@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "rnc_parser"
+require_relative 'rnc_parser'
 
 module Rng
   # RNG to RNC converter module

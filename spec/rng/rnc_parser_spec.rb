@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require "spec_helper"
+require 'spec_helper'
 
 RSpec.describe Rng::RncParser do
-  describe "#parse" do
-    context "with a simple RNC schema" do
+  describe '#parse' do
+    context 'with a simple RNC schema' do
       let(:input) do
         <<~RNC
           element addressBook {
@@ -16,14 +16,14 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "correctly parses the schema" do
+      it 'correctly parses the schema' do
         result = described_class.parse(input)
         expect(result).to be_a(Rng::Grammar)
-        expect(result.start.first.element.attr_name).to eq("addressBook")
+        expect(result.start.first.element.attr_name).to eq('addressBook')
       end
     end
 
-    context "with attributes" do
+    context 'with attributes' do
       let(:input) do
         <<~RNC
           element person {
@@ -33,13 +33,13 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "correctly parses attributes" do
+      it 'correctly parses attributes' do
         result = described_class.parse(input)
-        expect(result.start.first.element.attr_name).to eq("person")
+        expect(result.start.first.element.attr_name).to eq('person')
       end
     end
 
-    context "with nested elements" do
+    context 'with nested elements' do
       let(:input) do
         <<~RNC
           element root {
@@ -51,18 +51,18 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "correctly parses nested elements" do
+      it 'correctly parses nested elements' do
         result = described_class.parse(input)
-        expect(result.start.first.element.attr_name).to eq("root")
+        expect(result.start.first.element.attr_name).to eq('root')
       end
     end
   end
 
-  describe "#to_rnc" do
-    context "with address_book.rnc" do
-      let(:rnc_input) { File.read("spec/fixtures/rnc/address_book.rnc") }
+  describe '#to_rnc' do
+    context 'with address_book.rnc' do
+      let(:rnc_input) { File.read('spec/fixtures/rnc/address_book.rnc') }
 
-      it "round-trips successfully" do
+      it 'round-trips successfully' do
         # Parse RNC to Grammar
         grammar1 = described_class.parse(rnc_input)
 
@@ -78,7 +78,7 @@ RSpec.describe Rng::RncParser do
       end
     end
 
-    context "with value literals" do
+    context 'with value literals' do
       let(:input) do
         <<~RNC
           start = element doc {
@@ -87,16 +87,16 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "generates value literals correctly" do
+      it 'generates value literals correctly' do
         grammar = described_class.parse(input)
         rnc = described_class.to_rnc(grammar)
 
         expect(rnc).to include('"1.0"')
-        expect(rnc).to include("attribute version")
+        expect(rnc).to include('attribute version')
       end
     end
 
-    context "with choice of values" do
+    context 'with choice of values' do
       let(:input) do
         <<~RNC
           start = element admonition {
@@ -105,18 +105,18 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "generates choice of values correctly" do
+      it 'generates choice of values correctly' do
         grammar = described_class.parse(input)
         rnc = described_class.to_rnc(grammar)
 
         expect(rnc).to include('"note"')
         expect(rnc).to include('"warning"')
         expect(rnc).to include('"tip"')
-        expect(rnc).to include("|")
+        expect(rnc).to include('|')
       end
     end
 
-    context "with namespace declaration" do
+    context 'with namespace declaration' do
       let(:input) do
         <<~RNC
           default namespace = "http://example.org/ns"
@@ -125,7 +125,7 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "generates namespace declaration" do
+      it 'generates namespace declaration' do
         grammar = described_class.parse(input)
         rnc = described_class.to_rnc(grammar)
 
@@ -133,7 +133,7 @@ RSpec.describe Rng::RncParser do
       end
     end
 
-    context "with mixed content" do
+    context 'with mixed content' do
       let(:input) do
         <<~RNC
           start = element para {
@@ -144,31 +144,31 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "generates mixed content correctly" do
+      it 'generates mixed content correctly' do
         grammar = described_class.parse(input)
         rnc = described_class.to_rnc(grammar)
 
-        expect(rnc).to include("mixed {")
-        expect(rnc).to include("element emphasis")
+        expect(rnc).to include('mixed {')
+        expect(rnc).to include('element emphasis')
       end
     end
 
-    context "with datatype library" do
-      it "generates datatype library declaration" do
+    context 'with datatype library' do
+      it 'generates datatype library declaration' do
         # Create a Grammar object directly with datatype library
         grammar = Rng::Grammar.new
-        grammar.datatypeLibrary = "http://www.w3.org/2001/XMLSchema-datatypes"
+        grammar.datatypeLibrary = 'http://www.w3.org/2001/XMLSchema-datatypes'
 
         # Create a simple start pattern
         start = Rng::Start.new
         element = Rng::Element.new
-        element.attr_name = "person"
+        element.attr_name = 'person'
 
         attribute = Rng::Attribute.new
-        attribute.attr_name = "id"
+        attribute.attr_name = 'id'
 
         data = Rng::Data.new
-        data.type = "ID"
+        data.type = 'ID'
         attribute.data = data
 
         element.attribute = attribute
@@ -177,12 +177,12 @@ RSpec.describe Rng::RncParser do
 
         rnc = described_class.to_rnc(grammar)
 
-        expect(rnc).to include("datatypes xsd")
-        expect(rnc).to include("xsd:ID")
+        expect(rnc).to include('datatypes xsd')
+        expect(rnc).to include('xsd:ID')
       end
     end
 
-    context "with pattern references in choice" do
+    context 'with pattern references in choice' do
       let(:input) do
         <<~RNC
           start = element doc {
@@ -194,17 +194,17 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses choice of references correctly" do
+      it 'parses choice of references correctly' do
         grammar = described_class.parse(input)
 
         # Should have start with oneOrMore containing choice of refs
         expect(grammar.start).not_to be_empty
         expect(grammar.define.length).to eq(2)
-        expect(grammar.define.map(&:name)).to contain_exactly("section1",
-                                                              "section2")
+        expect(grammar.define.map(&:name)).to contain_exactly('section1',
+                                                              'section2')
       end
 
-      it "round-trips choice of references correctly" do
+      it 'round-trips choice of references correctly' do
         grammar1 = described_class.parse(input)
         rnc = described_class.to_rnc(grammar1)
         grammar2 = described_class.parse(rnc)
@@ -215,43 +215,39 @@ RSpec.describe Rng::RncParser do
   end
 
   # Metanorma Schema Tests - Test all real-world schemas
-  describe "Metanorma Schema Tests" do
+  describe 'Metanorma Schema Tests' do
     # Get all RNC files from metanorma fixtures
-    rnc_files = Dir.glob("spec/fixtures/metanorma/*.rnc")
+    rnc_files = Dir.glob('spec/fixtures/metanorma/*.rnc')
 
     if rnc_files.empty?
-      it "has Metanorma schema fixtures available" do
-        skip "No Metanorma RNC files found in spec/fixtures/metanorma/"
+      it 'has Metanorma schema fixtures available' do
+        skip 'No Metanorma RNC files found in spec/fixtures/metanorma/'
       end
     else
       rnc_files.each do |rnc_file|
-        schema_name = File.basename(rnc_file, ".rnc")
+        schema_name = File.basename(rnc_file, '.rnc')
 
         context "with #{schema_name}" do
-          it "parses successfully" do
+          it 'parses successfully' do
             expect { Rng.parse_file(rnc_file) }.not_to raise_error
           end
 
-          it "produces valid Grammar object" do
+          it 'produces valid Grammar object' do
             grammar = Rng.parse_file(rnc_file)
             expect(grammar).to be_a(Rng::Grammar)
             expect(grammar.start).not_to be_nil
           end
 
-          it "round-trips correctly" do
+          it 'round-trips correctly' do
             grammar1 = Rng.parse_file(rnc_file)
             rnc_generated = described_class.to_rnc(grammar1)
             grammar2 = described_class.parse(rnc_generated)
 
             # Compare structure
-            if grammar1.start&.first&.element&.name
-              expect(grammar2.start.first.element.name).to eq(grammar1.start.first.element.name)
-            end
+            expect(grammar2.start.first.element.name).to eq(grammar1.start.first.element.name) if grammar1.start&.first&.element&.name
 
             # Compare defined patterns
-            if grammar1.define && grammar2.define
-              expect(grammar2.define.map(&:name).sort).to eq(grammar1.define.map(&:name).sort)
-            end
+            expect(grammar2.define.map(&:name).sort).to eq(grammar1.define.map(&:name).sort) if grammar1.define && grammar2.define
           end
         end
       end
@@ -259,8 +255,8 @@ RSpec.describe Rng::RncParser do
   end
 
   # Complex RELAX NG Pattern Tests
-  describe "Complex RELAX NG Patterns" do
-    context "with interleave patterns" do
+  describe 'Complex RELAX NG Patterns' do
+    context 'with interleave patterns' do
       let(:input) do
         <<~RNC
           start = element doc {
@@ -270,13 +266,13 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses interleave correctly" do
+      it 'parses interleave correctly' do
         grammar = described_class.parse(input)
         il = grammar.start.first.element.interleave
         expect(il).not_to be_nil
       end
 
-      it "round-trips interleave patterns" do
+      it 'round-trips interleave patterns' do
         grammar1 = described_class.parse(input)
         rnc = described_class.to_rnc(grammar1)
         grammar2 = described_class.parse(rnc)
@@ -286,7 +282,7 @@ RSpec.describe Rng::RncParser do
       end
     end
 
-    context "with anyName patterns" do
+    context 'with anyName patterns' do
       let(:input) do
         <<~RNC
           start = element * {
@@ -295,14 +291,14 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses anyName correctly" do
+      it 'parses anyName correctly' do
         grammar = described_class.parse(input)
         element = grammar.start.first.element
         expect(element.anyName).not_to be_nil
       end
     end
 
-    context "with nsName patterns" do
+    context 'with nsName patterns' do
       let(:input) do
         <<~RNC
           namespace ns = "http://example.org"
@@ -313,13 +309,13 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses nsName correctly" do
+      it 'parses nsName correctly' do
         grammar = described_class.parse(input)
         expect(grammar.start.first.element).to be_a(Rng::Element)
       end
     end
 
-    context "with external references" do
+    context 'with external references' do
       let(:input) do
         <<~RNC
           start = element doc {
@@ -328,12 +324,12 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses external references" do
+      it 'parses external references' do
         expect { described_class.parse(input) }.not_to raise_error
       end
     end
 
-    context "with parent references" do
+    context 'with parent references' do
       let(:input) do
         <<~RNC
           grammar {
@@ -350,12 +346,12 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses parent references" do
+      it 'parses parent references' do
         expect { described_class.parse(input) }.not_to raise_error
       end
     end
 
-    context "with list patterns" do
+    context 'with list patterns' do
       let(:input) do
         <<~RNC
           start = element values {
@@ -366,13 +362,13 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses list patterns" do
+      it 'parses list patterns' do
         grammar = described_class.parse(input)
         expect(grammar.start.first.element.list).not_to be_nil
       end
     end
 
-    context "with notAllowed patterns" do
+    context 'with notAllowed patterns' do
       let(:input) do
         <<~RNC
           start = element doc {
@@ -381,13 +377,13 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses notAllowed correctly" do
+      it 'parses notAllowed correctly' do
         grammar = described_class.parse(input)
         expect(grammar.start.first.element.notAllowed).not_to be_nil
       end
     end
 
-    context "with empty patterns" do
+    context 'with empty patterns' do
       let(:input) do
         <<~RNC
           start = element doc {
@@ -396,13 +392,13 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses empty correctly" do
+      it 'parses empty correctly' do
         grammar = described_class.parse(input)
         expect(grammar.start.first.element.empty).not_to be_nil
       end
     end
 
-    context "with data patterns with params" do
+    context 'with data patterns with params' do
       let(:input) do
         <<~RNC
           start = element value {
@@ -411,7 +407,7 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses data with parameters" do
+      it 'parses data with parameters' do
         grammar = described_class.parse(input)
         data = grammar.start.first.element.data
         expect(data).not_to be_nil
@@ -419,7 +415,7 @@ RSpec.describe Rng::RncParser do
       end
     end
 
-    context "with except patterns in anyName" do
+    context 'with except patterns in anyName' do
       let(:input) do
         <<~RNC
           start = element * - (reserved | special) {
@@ -428,58 +424,58 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "parses except in anyName" do
+      it 'parses except in anyName' do
         expect { described_class.parse(input) }.not_to raise_error
       end
     end
   end
 
   # Error Handling Tests
-  describe "Error Handling" do
-    context "with malformed RNC" do
-      it "raises error for missing closing brace" do
-        input = "element doc { text"
+  describe 'Error Handling' do
+    context 'with malformed RNC' do
+      it 'raises error for missing closing brace' do
+        input = 'element doc { text'
         expect do
           described_class.parse(input)
         end.to raise_error(Parslet::ParseFailed)
       end
 
-      it "raises error for invalid element syntax" do
-        input = "element { text }"
+      it 'raises error for invalid element syntax' do
+        input = 'element { text }'
         expect do
           described_class.parse(input)
         end.to raise_error(Parslet::ParseFailed)
       end
 
-      it "raises error for invalid occurrence marker" do
-        input = "element doc { text ++ }"
+      it 'raises error for invalid occurrence marker' do
+        input = 'element doc { text ++ }'
         expect do
           described_class.parse(input)
         end.to raise_error(Parslet::ParseFailed)
       end
 
-      it "raises error for unclosed parentheses" do
-        input = "element doc { (text }"
+      it 'raises error for unclosed parentheses' do
+        input = 'element doc { (text }'
         expect do
           described_class.parse(input)
         end.to raise_error(Parslet::ParseFailed)
       end
 
-      it "raises error for invalid choice syntax" do
-        input = "element doc { text | | text }"
+      it 'raises error for invalid choice syntax' do
+        input = 'element doc { text | | text }'
         expect do
           described_class.parse(input)
         end.to raise_error(Parslet::ParseFailed)
       end
     end
 
-    context "with empty input" do
-      it "returns empty grammar for empty string" do
-        result = described_class.parse("")
+    context 'with empty input' do
+      it 'returns empty grammar for empty string' do
+        result = described_class.parse('')
         expect(result).to be_a(Rng::Grammar)
       end
 
-      it "returns empty grammar for whitespace only" do
+      it 'returns empty grammar for whitespace only' do
         result = described_class.parse("   \n  ")
         expect(result).to be_a(Rng::Grammar)
       end
@@ -487,14 +483,14 @@ RSpec.describe Rng::RncParser do
   end
 
   # Performance Benchmarks
-  describe "Performance" do
-    context "with large schemas" do
+  describe 'Performance' do
+    context 'with large schemas' do
       # Find the largest schema file
-      rnc_files = Dir.glob("spec/fixtures/metanorma/*.rnc")
+      rnc_files = Dir.glob('spec/fixtures/metanorma/*.rnc')
 
       if rnc_files.any?
         largest_file = rnc_files.max_by { |f| File.size(f) }
-        schema_name = File.basename(largest_file, ".rnc")
+        schema_name = File.basename(largest_file, '.rnc')
 
         it "parses #{schema_name} in reasonable time" do
           rnc = File.read(largest_file)
@@ -510,13 +506,13 @@ RSpec.describe Rng::RncParser do
           expect(avg_time).to be < 2.0
         end
       else
-        it "has schema files for performance testing" do
-          skip "No Metanorma schemas available for performance testing"
+        it 'has schema files for performance testing' do
+          skip 'No Metanorma schemas available for performance testing'
         end
       end
     end
 
-    context "with round-trip conversion" do
+    context 'with round-trip conversion' do
       let(:input) do
         <<~RNC
           start = element addressBook {
@@ -529,7 +525,7 @@ RSpec.describe Rng::RncParser do
         RNC
       end
 
-      it "performs round-trip conversion efficiently" do
+      it 'performs round-trip conversion efficiently' do
         start_time = Time.now
 
         100.times do

@@ -1,0 +1,8 @@
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <include href="nested_leaf.rng"/>
+  <define name="middle">
+    <element name="y">
+      <empty/>
+    </element>
+  </define>
+</grammar>

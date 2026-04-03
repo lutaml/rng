@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "nokogiri"
+require 'nokogiri'
 
 module Rng
   # Parses RELAX NG test suite XML files (like compacttest.xml)
@@ -39,13 +39,13 @@ module Rng
 
       def description
         if valid_rnc? && valid_rng?
-          "RNC ↔ RNG conversion"
+          'RNC ↔ RNG conversion'
         elsif valid_rnc?
-          "Valid RNC parsing"
+          'Valid RNC parsing'
         elsif invalid_rnc?
-          "Invalid RNC rejection"
+          'Invalid RNC rejection'
         else
-          "Test case"
+          'Test case'
         end
       end
     end
@@ -87,7 +87,7 @@ module Rng
     private
 
     def parse_test_cases
-      @doc.xpath("//testCase").each_with_index do |test_node, index|
+      @doc.xpath('//testCase').each_with_index do |test_node, index|
         test_case = TestCase.new(id: index + 1)
 
         # Parse compact syntax (RNC)
@@ -101,68 +101,68 @@ module Rng
     end
 
     def parse_compact_section(test_node, test_case)
-      compact_node = test_node.at_xpath("compact")
+      compact_node = test_node.at_xpath('compact')
       return unless compact_node
 
       # Parse resources
-      compact_node.xpath("resource").each do |resource_node|
-        name = resource_node["name"]
+      compact_node.xpath('resource').each do |resource_node|
+        name = resource_node['name']
         content = resource_node.text.strip
         test_case.compact_resources[name] = content
       end
 
       # Parse correct RNC
-      correct_node = compact_node.at_xpath("correct")
+      correct_node = compact_node.at_xpath('correct')
       if correct_node
         test_case.instance_variable_set(
           :@compact_correct,
-          correct_node.text.strip,
+          correct_node.text.strip
         )
       end
 
       # Parse incorrect RNC
-      incorrect_node = compact_node.at_xpath("incorrect")
-      if incorrect_node
-        test_case.instance_variable_set(
-          :@compact_incorrect,
-          incorrect_node.text.strip,
-        )
-      end
+      incorrect_node = compact_node.at_xpath('incorrect')
+      return unless incorrect_node
+
+      test_case.instance_variable_set(
+        :@compact_incorrect,
+        incorrect_node.text.strip
+      )
     end
 
     def parse_xml_section(test_node, test_case)
-      xml_node = test_node.at_xpath("xml")
+      xml_node = test_node.at_xpath('xml')
       return unless xml_node
 
       # Parse resources
-      xml_node.xpath("resource").each do |resource_node|
-        name = resource_node["name"]
+      xml_node.xpath('resource').each do |resource_node|
+        name = resource_node['name']
         # Get the first element child as RNG content
         content_node = resource_node.elements.first
-        content = content_node ? content_node.to_xml : ""
+        content = content_node ? content_node.to_xml : ''
         test_case.xml_resources[name] = content
       end
 
       # Parse correct RNG
-      correct_node = xml_node.at_xpath("correct")
+      correct_node = xml_node.at_xpath('correct')
       if correct_node
         # Get the first element child as RNG content
         rng_node = correct_node.elements.first
         test_case.instance_variable_set(
           :@xml_correct,
-          rng_node ? rng_node.to_xml : "",
+          rng_node ? rng_node.to_xml : ''
         )
       end
 
       # Parse incorrect RNG (if any)
-      incorrect_node = xml_node.at_xpath("incorrect")
-      if incorrect_node
-        rng_node = incorrect_node.elements.first
-        test_case.instance_variable_set(
-          :@xml_incorrect,
-          rng_node ? rng_node.to_xml : "",
-        )
-      end
+      incorrect_node = xml_node.at_xpath('incorrect')
+      return unless incorrect_node
+
+      rng_node = incorrect_node.elements.first
+      test_case.instance_variable_set(
+        :@xml_incorrect,
+        rng_node ? rng_node.to_xml : ''
+      )
     end
   end
 end

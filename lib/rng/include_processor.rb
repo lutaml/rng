@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "set"
+require 'set'
 
 module Rng
   # Handles RNC file inclusion and grammar merging
@@ -132,7 +132,7 @@ module Rng
       # Create a temporary grammar_tree to hold merged content
       grammar_tree = {
         start: nil,
-        definitions: [],
+        definitions: []
       }
 
       # Process each top-level include
@@ -174,9 +174,7 @@ module Rng
       end
 
       # Process raw_trailing if present (named patterns after includes)
-      if tree[:raw_trailing]
-        process_raw_trailing!(tree, grammar_tree)
-      end
+      process_raw_trailing!(tree, grammar_tree) if tree[:raw_trailing]
 
       # Clean up - remove top_includes key as it's been processed
       tree.delete(:top_includes)
@@ -189,7 +187,7 @@ module Rng
     # @param base_dir [String] Base directory for resolving relative paths
     # @param visited_files [Set] Set of already visited file paths
     def process_single_include(grammar_tree, include_item, base_dir,
-visited_files)
+                               visited_files)
       href = extract_string_literal(include_item[:href])
       override = parse_override(include_item[:override])
 
@@ -254,7 +252,11 @@ visited_files)
       raw = tree[:raw_trailing]
       return unless raw
 
-      text = raw.is_a?(Array) ? raw.map { |r| r.respond_to?(:str) ? r.str : r.to_s }.join : (raw.respond_to?(:str) ? raw.str : raw.to_s)
+      text = if raw.is_a?(Array)
+               raw.map { |r| r.respond_to?(:str) ? r.str : r.to_s }.join
+             else
+               (raw.respond_to?(:str) ? raw.str : raw.to_s)
+             end
       return if text.strip.empty?
 
       # Parse raw_trailing as a grammar (which handles named patterns)
@@ -319,7 +321,7 @@ visited_files)
           override[:definitions].each do |override_def|
             # Check if names match
             next unless source_def[:name] && override_def[:name] &&
-              extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
+                        extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
 
             # Use override instead of source
             target_tree[:definitions] << override_def
@@ -341,7 +343,7 @@ visited_files)
 
         source_tree[:definitions]&.each do |source_def|
           next unless source_def[:name] && override_def[:name] &&
-            extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
+                      extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
 
           matched = true
           break
@@ -393,7 +395,7 @@ visited_files)
     # @param lit [Hash] String literal with :string_parts and :concatenations
     # @return [String] Extracted string
     def extract_string_literal(lit)
-      return "" unless lit
+      return '' unless lit
 
       # Extract main string parts
       result = extract_string_parts(lit[:string_parts])
@@ -413,11 +415,11 @@ visited_files)
     # @param parts [Array, String] String parts
     # @return [String] Extracted string
     def extract_string_parts(parts)
-      return "" unless parts
+      return '' unless parts
       return parts if parts.is_a?(String)
       return parts.str if parts.respond_to?(:str)
 
-      return "" unless parts.is_a?(Array)
+      return '' unless parts.is_a?(Array)
 
       parts.map do |part|
         if part.is_a?(String)
@@ -428,21 +430,21 @@ visited_files)
           # Handle \x{HEX}
           hex_str = part[:hex_escape][:hex]
           hex_str = hex_str.str if hex_str.respond_to?(:str)
-          [hex_str.to_i(16)].pack("U")
+          [hex_str.to_i(16)].pack('U')
         elsif part[:char_escape]
           # Handle \", \\, \n, \r, \t, and RELAX NG class escapes \i, \c, \d, \w
           char = part[:char_escape][:char]
           char = char.str if char.respond_to?(:str)
           case char
           when '"' then '"'
-          when "\\" then "\\"
-          when "n" then "\n"
-          when "r" then "\r"
-          when "t" then "\t"
-          when "i" then "\\i"
-          when "c" then "\\c"
-          when "d" then "\\d"
-          when "w" then "\\w"
+          when '\\' then '\\'
+          when 'n' then "\n"
+          when 'r' then "\r"
+          when 't' then "\t"
+          when 'i' then '\\i'
+          when 'c' then '\\c'
+          when 'd' then '\\d'
+          when 'w' then '\\w'
           else char
           end
         elsif part[:char]

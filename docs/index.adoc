@@ -1,0 +1,52 @@
+---
+title: RNG Ruby Gem
+nav_order: 1
+---
+
+# RNG Ruby Gem
+
+A Ruby gem for parsing, manipulating, and converting RELAX NG schemas (both RNG XML and RNC compact syntax).
+
+## Features
+
+- Parse RNG XML format
+- Parse RNC compact syntax
+- Convert between RNG and RNC formats
+- Validate RNG schemas
+- Resolve external references (`<include>` and `<externalRef>`)
+
+## Installation
+
+```bash
+gem install rng
+```
+
+Or add to your Gemfile:
+
+```ruby
+gem 'rng'
+```
+
+## Quick Start
+
+```ruby
+require 'rng'
+
+# Parse RNG XML
+rng_xml = File.read('schema.rng')
+grammar = Rng.parse(rng_xml)
+
+# Parse RNC compact syntax
+rnc_text = File.read('schema.rnc')
+grammar = Rng.parse_rnc(rnc_text)
+
+# Convert RNG to RNC
+rnc_output = Rng.to_rnc(grammar)
+
+# Resolve external references
+grammar = Rng.parse(rng_xml, location: '/path/to/schema.rng', resolve_external: true)
+```
+
+## Status
+
+This gem is under active development. The core parsing functionality is complete and well-tested against the Jing-Trang test suite.

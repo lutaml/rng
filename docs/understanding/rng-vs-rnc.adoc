@@ -1,0 +1,118 @@
+---
+title: RNG vs RNC
+layout: default
+nav_order: 1
+parent: Understanding
+---
+
+= RNG vs RNC
+
+RELAX NG schemas can be written in two formats: XML (RNG) and Compact (RNC).
+
+== RNG XML Format
+
+RNG is the XML-based representation of RELAX NG schemas.
+
+=== Example
+
+[source,xml]
+----
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <start>
+    <element name="person">
+      <zeroOrMore>
+        <element name="child">
+          <empty/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </start>
+</grammar>
+----
+
+=== Advantages
+
+- **Standard XML tools**: Can be edited with any XML editor
+- **Explicit structure**: All elements and attributes are visible
+- **Namespaces**: Full namespace support is natural
+- **Transformation**: Can be processed with XSLT
+- **Validation**: Can be validated with XML schemas
+
+=== Disadvantages
+
+- **Verbose**: More characters to type
+- **Less readable**: Harder to scan quickly
+- **XML overhead**: Requires proper escaping
+
+== RNC Compact Syntax
+
+RNC is a text-based shorthand for RELAX NG schemas.
+
+=== Example
+
+[source,rnc]
+----
+element person {
+  element child {
+    empty
+  }*
+}
+----
+
+=== Advantages
+
+- **Concise**: Much shorter than equivalent XML
+- **Readable**: Easier to see the structure at a glance
+- **Programming-like**: Familiar syntax for developers
+- **Quick prototyping**: Faster to write and modify
+
+=== Disadvantages
+
+- **No native tools**: Requires conversion for XML tools
+- **Escaping**: Special characters need escaping
+- **Limited namespace support**: More complex namespace handling
+
+== When to Use Each
+
+=== Use RNG when:
+
+- You need to validate the schema itself with XML tools
+- You're integrating with XML processing pipelines
+- Namespace handling is critical
+- You need to embed schema documentation in foreign elements
+- You're working with teams more familiar with XML
+
+=== Use RNC when:
+
+- You want a quick prototype
+- The schema is primarily for Ruby processing
+- Readability is more important than tool compatibility
+- You're writing tests or examples
+
+== Conversion
+
+Both formats are fully equivalent - you can convert between them without loss:
+
+[source,ruby]
+----
+# RNG to RNC
+grammar = Rng.parse(rng_xml)
+rnc = Rng.to_rnc(grammar)
+
+# RNC to RNG
+grammar = Rng.parse_rnc(rnc_text)
+rng_xml = grammar.to_xml
+----
+
+== Quick Reference
+
+| Feature | RNG | RNC |
+|---------|-----|-----|
+| Element | `<element name="foo">...</element>` | `element foo { ... }` |
+| Attribute | `<attribute name="bar">...</attribute>` | `attribute bar { ... }` |
+| Optional | `<optional>...</optional>` | `... ?` |
+| Zero or more | `<zeroOrMore>...</zeroOrMore>` | `... *` |
+| One or more | `<oneOrMore>...</oneOrMore>` | `... +` |
+| Choice | `<choice>...</choice>` | `... \| ...` |
+| Sequence | `<group>...</group>` | `..., ...` |
+| Interleave | `<interleave>...</interleave>` | `... & ...` |

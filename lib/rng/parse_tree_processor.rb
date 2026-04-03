@@ -88,7 +88,7 @@ module Rng
         ns_data = item[:default_ns]
         uri = extract_string_literal(ns_data[:uri])
         preamble.add_namespace(
-          NamespaceDeclaration.new(uri: uri, is_default: true),
+          NamespaceDeclaration.new(uri: uri, is_default: true)
         )
       elsif item[:default_prefixed_ns]
         # Default namespace (prefixed): default namespace prefix = "uri"
@@ -96,7 +96,7 @@ module Rng
         prefix = extract_identifier(ns_data[:prefix])
         uri = extract_string_literal(ns_data[:uri])
         preamble.add_namespace(
-          NamespaceDeclaration.new(prefix: prefix, uri: uri, is_default: true),
+          NamespaceDeclaration.new(prefix: prefix, uri: uri, is_default: true)
         )
       elsif item[:prefixed_ns]
         # Prefixed namespace: namespace prefix = "uri"
@@ -104,7 +104,7 @@ module Rng
         prefix = extract_identifier(ns_data[:prefix])
         uri = extract_string_literal(ns_data[:uri])
         preamble.add_namespace(
-          NamespaceDeclaration.new(prefix: prefix, uri: uri),
+          NamespaceDeclaration.new(prefix: prefix, uri: uri)
         )
       end
     end
@@ -117,7 +117,7 @@ module Rng
       prefix = extract_identifier(item[:prefix])
       uri = extract_string_literal(item[:uri])
       preamble.add_datatype(
-        DatatypeDeclaration.new(prefix: prefix, uri: uri),
+        DatatypeDeclaration.new(prefix: prefix, uri: uri)
       )
     end
 
@@ -126,7 +126,7 @@ module Rng
     # @param id [Hash] Identifier with :identifier_parts
     # @return [String] Extracted identifier
     def extract_identifier(id)
-      return "" unless id && id[:identifier_parts]
+      return '' unless id && id[:identifier_parts]
 
       id[:identifier_parts].map do |part|
         if part[:char]
@@ -134,9 +134,9 @@ module Rng
         elsif part[:hex_escape]
           # Handle hex escape: \x{HEX}
           hex_str = extract_parslet_string(part[:hex_escape][:hex])
-          [hex_str.to_i(16)].pack("U")
+          [hex_str.to_i(16)].pack('U')
         else
-          ""
+          ''
         end
       end.join
     end
@@ -146,7 +146,7 @@ module Rng
     # @param lit [Hash] String literal with :string_parts and :concatenations
     # @return [String] Extracted string
     def extract_string_literal(lit)
-      return "" unless lit
+      return '' unless lit
 
       result = extract_string_parts(lit[:string_parts])
 
@@ -176,7 +176,7 @@ module Rng
         if line[:doc_line]
           extract_parslet_string(line[:doc_line])
         else
-          ""
+          ''
         end
       end.join("\n").strip
     end
@@ -185,7 +185,7 @@ module Rng
     #
     # @param node [Hash] Node that may contain :annotations
     # @return [Hash] Hash with :attributes and :elements arrays
-    RNG_NAMESPACE = "http://relaxng.org/ns/structure/1.0"
+    RNG_NAMESPACE = 'http://relaxng.org/ns/structure/1.0'
 
     def extract_annotations(node)
       result = { attributes: [], elements: [] }
@@ -223,28 +223,26 @@ module Rng
 
           # TC 11-12: Check for duplicate annotation attributes
           attr_key = "#{name_parts[:prefix]}:#{name_parts[:local]}"
-          if seen_attrs.key?(attr_key)
-            raise StandardError, "duplicate annotation attribute '#{attr_key}'"
-          end
+          raise StandardError, "duplicate annotation attribute '#{attr_key}'" if seen_attrs.key?(attr_key)
+
           seen_attrs[attr_key] = true
 
           # TC 18: xmlns attribute is forbidden in annotations
-          if name_parts[:local] == "xmlns" && name_parts[:prefix].nil?
-            raise StandardError, "xmlns attribute is not allowed in annotations"
+          if name_parts[:local] == 'xmlns' && name_parts[:prefix].nil?
+            raise StandardError,
+                  'xmlns attribute is not allowed in annotations'
           end
 
           # TC 70-71: RNG namespace attributes forbidden
           if name_parts[:prefix] && @namespace_prefixes
             ns_uri = @namespace_prefixes[name_parts[:prefix]]
-            if ns_uri == RNG_NAMESPACE
-              raise StandardError, "attributes in the RELAX NG namespace are not allowed"
-            end
+            raise StandardError, 'attributes in the RELAX NG namespace are not allowed' if ns_uri == RNG_NAMESPACE
           end
 
           result[:attributes] << {
             name: name_parts[:local],
             namespace: name_parts[:prefix],
-            value: value,
+            value: value
           }
         elsif ann.key?(:elem_content)
           # Foreign element
@@ -253,9 +251,7 @@ module Rng
           # TC 70-71: RNG namespace elements forbidden
           if name_parts[:prefix] && @namespace_prefixes
             ns_uri = @namespace_prefixes[name_parts[:prefix]]
-            if ns_uri == RNG_NAMESPACE
-              raise StandardError, "elements in the RELAX NG namespace are not allowed"
-            end
+            raise StandardError, 'elements in the RELAX NG namespace are not allowed' if ns_uri == RNG_NAMESPACE
           end
 
           result[:elements] << {
@@ -263,7 +259,7 @@ module Rng
             namespace: name_parts[:prefix],
             content: content_data[:text],
             attributes: content_data[:attributes],
-            elements: content_data[:elements],
+            elements: content_data[:elements]
           }
         end
       end
@@ -276,12 +272,10 @@ module Rng
     # @param qname [Hash] Qualified name from parse tree
     # @return [Hash] Hash with :prefix and :local keys
     def extract_qualified_name(qname)
-      return { prefix: nil, local: "" } unless qname
+      return { prefix: nil, local: '' } unless qname
 
       prefix = nil
-      if qname[:prefix]
-        prefix = extract_identifier(qname[:prefix])
-      end
+      prefix = extract_identifier(qname[:prefix]) if qname[:prefix]
 
       local = extract_identifier(qname[:local_name])
 
@@ -293,15 +287,13 @@ module Rng
     # @param content [Hash, nil] Annotation content from parse tree
     # @return [Hash] Hash with :text, :attributes, :elements
     def extract_annotation_content(content)
-      result = { text: "", attributes: [], elements: [] }
+      result = { text: '', attributes: [], elements: [] }
       return result if content.nil?
 
       items = []
 
       # Get first item
-      if content[:first]
-        items << content[:first]
-      end
+      items << content[:first] if content[:first]
 
       # Get rest of items
       if content[:rest]
@@ -333,11 +325,11 @@ module Rng
     # @param parts [Array, String] String parts
     # @return [String] Extracted string
     def extract_string_parts(parts)
-      return "" unless parts
+      return '' unless parts
       return parts if parts.is_a?(String)
       return parts.str if parts.respond_to?(:str)
 
-      return "" unless parts.is_a?(Array)
+      return '' unless parts.is_a?(Array)
 
       parts.map do |part|
         if part.is_a?(String)
@@ -347,20 +339,20 @@ module Rng
         elsif part[:hex_escape]
           # Handle \x{HEX}
           hex_str = extract_parslet_string(part[:hex_escape][:hex])
-          [hex_str.to_i(16)].pack("U")
+          [hex_str.to_i(16)].pack('U')
         elsif part[:char_escape]
           # Handle \", \\, \n, \r, \t, and RELAX NG class escapes \i, \c, \d, \w
           char = extract_parslet_string(part[:char_escape][:char])
           case char
           when '"' then '"'
-          when "\\" then "\\"
-          when "n" then "\n"
-          when "r" then "\r"
-          when "t" then "\t"
-          when "i" then "\\i"
-          when "c" then "\\c"
-          when "d" then "\\d"
-          when "w" then "\\w"
+          when '\\' then '\\'
+          when 'n' then "\n"
+          when 'r' then "\r"
+          when 't' then "\t"
+          when 'i' then '\\i'
+          when 'c' then '\\c'
+          when 'd' then '\\d'
+          when 'w' then '\\w'
           else char
           end
         elsif part[:char]
@@ -430,7 +422,7 @@ module Rng
       {
         start: nil,
         includes: @tree[:top_includes] || [],
-        definitions: definitions,
+        definitions: definitions
       }
     end
 
@@ -486,19 +478,13 @@ module Rng
       case node
       when Hash
         # Check for raw_override that needs parsing
-        if node[:override]&.dig(:raw_override)
-          parse_and_replace_override!(node)
-        end
+        parse_and_replace_override!(node) if node[:override]&.dig(:raw_override)
 
         # Check for raw_grammar that needs parsing (in grammar_block)
-        if node[:raw_grammar]
-          parse_and_replace_grammar!(node)
-        end
+        parse_and_replace_grammar!(node) if node[:raw_grammar]
 
         # Check for raw_patterns that need parsing (in flat grammar)
-        if node[:raw_patterns]
-          parse_and_replace_patterns!(node)
-        end
+        parse_and_replace_patterns!(node) if node[:raw_patterns]
 
         # Recursively process all hash values
         node.each_value { |v| process_raw_overrides!(v) }
@@ -582,7 +568,7 @@ module Rng
 
       {
         start: result[:start],
-        patterns: result[:patterns] || [],
+        patterns: result[:patterns] || []
       }
     rescue Parslet::ParseFailed => e
       # Graceful fallback for parse errors
@@ -686,24 +672,24 @@ module Rng
       @grammar_tree[:namespace] = @namespace if @namespace
 
       # New preamble metadata (if present)
-      if @preamble
-        if @preamble.default_namespace
-          @grammar_tree[:default_namespace] =
-            @preamble.default_namespace
-          # Also set legacy namespace format for converter
-          @grammar_tree[:namespace] = {
-            namespace_uri: @preamble.default_namespace,
-          }
-        end
-        unless @preamble.namespace_map.empty?
-          @grammar_tree[:namespace_map] =
-            @preamble.namespace_map
-        end
-        unless @preamble.datatype_map.empty?
-          @grammar_tree[:datatype_map] =
-            @preamble.datatype_map
-        end
+      return unless @preamble
+
+      if @preamble.default_namespace
+        @grammar_tree[:default_namespace] =
+          @preamble.default_namespace
+        # Also set legacy namespace format for converter
+        @grammar_tree[:namespace] = {
+          namespace_uri: @preamble.default_namespace
+        }
       end
+      unless @preamble.namespace_map.empty?
+        @grammar_tree[:namespace_map] =
+          @preamble.namespace_map
+      end
+      return if @preamble.datatype_map.empty?
+
+      @grammar_tree[:datatype_map] =
+        @preamble.datatype_map
     end
   end
 end

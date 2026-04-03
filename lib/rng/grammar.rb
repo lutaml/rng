@@ -13,26 +13,26 @@ module Rng
     attribute :div, Div, collection: true, initialize_empty: true
 
     xml do
-      element "grammar"
+      element 'grammar'
       ordered
 
       namespace ::Rng::Namespaces::RngNamespace
 
-      map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
+      map_attribute 'datatypeLibrary', to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "ns", to: :ns, value_map: {
+      map_attribute 'ns', to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "id", to: :id
+      map_attribute 'id', to: :id
 
-      map_element "start", to: :start
-      map_element "define", to: :define
-      map_element "element", to: :element
-      map_element "include", to: :include
-      map_element "div", to: :div
+      map_element 'start', to: :start
+      map_element 'define', to: :define
+      map_element 'element', to: :element
+      map_element 'include', to: :include
+      map_element 'div', to: :div
     end
   end
 end

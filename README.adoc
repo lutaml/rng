@@ -269,6 +269,62 @@ Round-trip conversion maintains semantic equivalence:
 * ⚠️  XML comments not preserved (Lutaml::Model limitation)
 * ⚠️  Attribute ordering may differ (not semantically significant)
 
+=== External Reference Resolution
+
+The library supports resolving external references in RNG schemas through the `resolve_external` option:
+
+[source,ruby]
+----
+require 'rng'
+
+# Parse RNG with external references resolved
+grammar = Rng.parse(
+  File.read('schema.rng'),
+  location: '/path/to/schema.rng',  # Required for relative path resolution
+  resolve_external: true
+)
+----
+
+**Supported external references:**
+
+* `<include href="uri"/>` at grammar level - merges definitions from external grammar
+* `<externalRef href="uri"/>` at pattern level - replaces ref with content from external grammar's start pattern
+
+**Error handling:**
+
+* Circular references are detected and raise `Rng::ExternalRefResolver::ExternalRefResolutionError`
+* Missing files emit warnings (when `RNG_VERBOSE=1` environment variable is set)
+* Resolution errors don't crash - they emit warnings and continue
+
+**Example with include:**
+
+[source,ruby]
+----
+# main.rng:
+# <grammar xmlns="http://relaxng.org/ns/structure/1.0">
+#   <include href="library.rng"/>
+#   <start><ref name="main-element"/></start>
+# </grammar>
+
+grammar = Rng.parse(File.read('main.rng'), location: 'main.rng', resolve_external: true)
+# Definitions from library.rng are merged into main grammar
+----
+
+**Example with externalRef:**
+
+[source,ruby]
+----
+# main.rng:
+# <grammar xmlns="http://relaxng.org/ns/structure/1.0">
+#   <start>
+#     <group><externalRef href="fragment.rng"/></group>
+#   </start>
+# </grammar>
+
+grammar = Rng.parse(File.read('main.rng'), location: 'main.rng', resolve_external: true)
+# externalRef is replaced with content from fragment.rng's start pattern
+----
+
 === Building schemas programmatically
 
 [source,ruby]
@@ -1836,10 +1892,17 @@ If conversion between formats produces unexpected results:
 
 === Future Enhancements
 
-**External Resource Support**::
-* File system integration for `include` and `externalRef`
-* URI resolution
-* Circular reference detection
+**External Resource Support** (✅ Completed in v0.4.0)::
+* File system integration for `include` and `externalRef` - DONE
+* URI resolution with relative path support - DONE
+* Circular reference detection - DONE
+* `Rng.parse()` accepts `resolve_external: true` option - DONE
+
+**CLI Interface (Thor-based)**::
+* `rng validate <schema.rng> <document.xml>` - Validate XML against schema
+* `rng convert <input.rnc> [-o output.rng]` - Convert between RNC/RNG
+* `rng parse <schema.rng>` - Parse and display AST
+* Leverages existing programmatic APIs
 
 **XML Validation**::
 * Validate XML documents against RNG schemas

@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'rng/cli'
+Rng::CLI.start(ARGV)

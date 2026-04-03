@@ -8,21 +8,21 @@ module Rng
     attribute :name, :string
 
     xml do
-      element "ref"
+      element 'ref'
       ordered
 
       namespace ::Rng::Namespaces::RngNamespace
 
-      map_attribute "id", to: :id
-      map_attribute "ns", to: :ns, value_map: {
+      map_attribute 'id', to: :id
+      map_attribute 'ns', to: :ns, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "datatypeLibrary", to: :datatypeLibrary, value_map: {
+      map_attribute 'datatypeLibrary', to: :datatypeLibrary, value_map: {
         from: { empty: :empty, omitted: :omitted, nil: :nil },
-        to: { empty: :empty, omitted: :omitted, nil: :nil },
+        to: { empty: :empty, omitted: :omitted, nil: :nil }
       }
-      map_attribute "name", to: :name
+      map_attribute 'name', to: :name
     end
   end
 end

@@ -1,11 +1,10 @@
 inherit_from:
-  - https://raw.githubusercontent.com/riboseinc/oss-guides/main/ci/rubocop.yml
   - .rubocop_todo.yml
 
 plugins:
-- rubocop-performance
-- rubocop-rake
-- rubocop-rspec
+  - rubocop-performance
+  - rubocop-rake
+  - rubocop-rspec
 
 AllCops:
   TargetRubyVersion: 3.0

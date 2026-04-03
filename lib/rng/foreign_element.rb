@@ -11,14 +11,14 @@ module Rng
     attribute :elements, ForeignElement, collection: true
 
     xml do
-      element "element"
+      element 'element'
       namespace ::Rng::Namespaces::RngNamespace
 
-      map_attribute "name", to: :name
-      map_attribute "namespace", to: :namespace
+      map_attribute 'name', to: :name
+      map_attribute 'namespace', to: :namespace
       map_content to: :content
-      map_element "attribute", to: :attributes
-      map_element "element", to: :elements
+      map_element 'attribute', to: :attributes
+      map_element 'element', to: :elements
     end
 
     def initialize(name: nil, namespace: nil, content: nil,

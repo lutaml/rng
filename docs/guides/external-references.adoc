@@ -1,0 +1,128 @@
+---
+title: External References
+layout: default
+nav_order: 4
+parent: Guides
+---
+
+= External References
+
+The RNG format supports two types of external references that the gem can resolve.
+
+== Include Directive (`<include>`)
+
+The `<include>` directive at the grammar level merges definitions from an external grammar file.
+
+=== Example
+
+`main.rng`:
+[source,xml]
+----
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <include href="library.rng"/>
+  <start>
+    <ref name="main-element"/>
+  </start>
+</grammar>
+----
+
+`library.rng`:
+[source,xml]
+----
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <define name="main-element">
+    <element name="foo">
+      <empty/>
+    </element>
+  </define>
+</grammar>
+----
+
+=== Resolution
+
+[source,ruby]
+----
+grammar = Rng.parse(
+  File.read('main.rng'),
+  location: '/path/to/main.rng',
+  resolve_external: true
+)
+----
+
+After resolution, the `define` from `library.rng` is merged into `main.rng`.
+
+== ExternalRef (`<externalRef>`)
+
+The `<externalRef>` directive at the pattern level replaces itself with content from an external grammar's start pattern.
+
+=== Example
+
+`main.rng`:
+[source,xml]
+----
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <start>
+    <group>
+      <externalRef href="external.rng"/>
+    </group>
+  </start>
+</grammar>
+----
+
+`external.rng`:
+[source,xml]
+----
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <start>
+    <element name="bar">
+      <empty/>
+    </element>
+  </start>
+</grammar>
+----
+
+=== Resolution
+
+The `<externalRef>` is replaced with the content from `external.rng`'s start pattern:
+
+[source,xml]
+----
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <start>
+    <group>
+      <element name="bar">
+        <empty/>
+      </element>
+    </group>
+  </start>
+</grammar>
+----
+
+== Circular Reference Detection
+
+The resolver detects circular references and raises an error:
+
+[source,ruby]
+----
+begin
+  grammar = Rng.parse(
+    File.read('circular.rng'),
+    location: '/path/to/circular.rng',
+    resolve_external: true
+  )
+rescue Rng::ExternalRefResolver::ExternalRefResolutionError => e
+  puts "Circular reference detected: #{e.href}"
+end
+----
+
+== Error Handling
+
+When external files cannot be found, the resolver issues a warning (when `RNG_VERBOSE=1`) and continues:
+
+[source,bash]
+----
+RNG_VERBOSE=1 bundle exec ruby -e '
+  grammar = Rng.parse(File.read("main.rng"), location: "/path", resolve_external: true)
+'
+# => Warning: Failed to resolve include "nonexistent.rng": External file not found: nonexistent.rng
+----

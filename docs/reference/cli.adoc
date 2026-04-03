@@ -1,0 +1,182 @@
+---
+title: CLI Reference
+layout: default
+nav_order: 2
+parent: Reference
+---
+
+= CLI Reference
+
+The RNG gem includes a command-line interface for common tasks.
+
+== Installation
+
+The CLI is automatically installed with the gem:
+
+[source,bash]
+----
+gem install rng
+rng --version
+----
+
+== Global Options
+
+[source,bash]
+----
+-v, --verbose    # Verbose output
+-q, --quiet      # Suppress non-error output
+-h, --help       # Show help
+--version        # Show version number
+----
+
+== Commands
+
+=== validate
+
+Validate an XML document against a RELAX NG schema (replaces Jing).
+
+[source,bash]
+----
+rng validate SCHEMA [DOCUMENT]
+----
+
+**Options:**
+
+- `-c, --compact` - Schema is in RNC compact format
+- `-x, --xml` - Schema is in RNG XML format (default: auto-detect)
+- `-o, --output FORMAT` - Output format: text, xml, json
+
+**Examples:**
+
+[source,bash]
+----
+# Validate a schema
+rng validate schema.rng
+
+# Validate an XML document
+rng validate schema.rng document.xml
+
+# Validate with RNC schema
+rng validate -c schema.rnc document.xml
+----
+
+=== convert
+
+Convert between RNC and RNG formats (replaces Trang).
+
+[source,bash]
+----
+rng convert INPUT [OUTPUT]
+----
+
+**Options:**
+
+- `-I, --input-format FORMAT` - Input format: rng, rnc, auto
+- `-O, --output-format FORMAT` - Output format: rng, rnc, auto
+
+**Examples:**
+
+[source,bash]
+----
+# RNC to RNG
+rng convert schema.rnc -o schema.rng
+
+# RNG to RNC
+rng convert schema.rng schema_converted.rnc
+----
+
+=== parse
+
+Parse a schema and display its structure.
+
+[source,bash]
+----
+rng parse SCHEMA
+----
+
+**Options:**
+
+- `-f, --format FORMAT` - Output format: text, json, yaml, xml
+- `--ast` - Show abstract syntax tree (RNC only)
+
+**Examples:**
+
+[source,bash]
+----
+# Text output (default)
+rng parse schema.rng
+
+# JSON output
+rng parse -f json schema.rng
+----
+
+=== info
+
+Show information about a schema.
+
+[source,bash]
+----
+rng info SCHEMA
+----
+
+**Options:**
+
+- `--statistics` - Show pattern statistics
+- `--namespaces` - List used namespaces
+
+**Examples:**
+
+[source,bash]
+----
+# Basic info
+rng info schema.rng
+
+# With statistics
+rng info --statistics schema.rng
+----
+
+=== version
+
+Show version number.
+
+[source,bash]
+----
+rng version
+----
+
+== Exit Codes
+
+- `0` - Success
+- `1` - Invalid input or validation failure
+- `2` - Error (file not found, parse error, etc.)
+
+== Examples
+
+=== Validate a document
+
+[source,bash]
+----
+$ rng validate spec/fixtures/rng/xhtml.rng spec/fixtures/xhtml/sample.xml
+Validating spec/fixtures/rng/xhtml.rng against spec/fixtures/xhtml/sample.xml...
+Document is valid
+----
+
+=== Convert a schema
+
+[source,bash]
+----
+$ rng convert spec/fixtures/rng/address_book.rng -o /tmp/address_book.rnc
+Converting spec/fixtures/rng/address_book.rng (rng) to rnc...
+Written to /tmp/address_book.rnc
+----
+
+=== Inspect a schema
+
+[source,bash]
+----
+$ rng parse spec/fixtures/rng/address_book.rng
+Schema Structure:
+  Start: Start
+  Definitions:
+    cardContent: element
+----

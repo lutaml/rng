@@ -1,0 +1,85 @@
+---
+title: Schema Validation
+layout: default
+nav_order: 4
+parent: Guides
+---
+
+= Schema Validation
+
+The RNG gem provides structural validation of RNG schemas.
+
+== Validating a Schema
+
+Validate that an RNG schema is well-formed and follows RELAX NG rules:
+
+[source,ruby]
+----
+require 'rng'
+
+begin
+  Rng::SchemaValidator.validate(rng_xml)
+  puts "Schema is valid"
+rescue Rng::SchemaValidationError => e
+  puts "Schema validation error: #{e.message}"
+end
+----
+
+== Validation During Parsing
+
+You can also validate during parsing with the `validate:` option:
+
+[source,ruby]
+----
+grammar = Rng.parse(rng_xml, validate: true)
+----
+
+This is equivalent to:
+
+[source,ruby]
+----
+Rng::SchemaValidator.validate(rng_xml)
+grammar = Rng.parse(rng_xml)
+----
+
+== Schema Validation Errors
+
+When validation fails, a `Rng::SchemaValidationError` is raised:
+
+[source,ruby]
+----
+begin
+  Rng::SchemaValidator.validate(invalid_rng_xml)
+rescue Rng::SchemaValidationError => e
+  puts e.message
+  puts e.errors if e.respond_to?(:errors)
+end
+----
+
+== What Gets Validated
+
+The SchemaValidator checks:
+
+1. **Grammar structure**: Start element, proper define elements
+2. **Pattern validity**: Elements properly nested, correct attributes
+3. **Name class validity**: NCName, QName, nsName proper usage
+4. **Datatype Library**: Correct datatype library references
+5. **Reference integrity**: Refs point to defined patterns
+
+== Limitations
+
+Schema validation does NOT:
+
+- Validate XML documents against the schema (use a validator like Jing for that)
+- Check semantic equivalence of patterns
+- Validate external references (those require I/O)
+
+== Schema Structure Validation
+
+The gem validates the schema structure when parsing with `validate: true`:
+
+[source,ruby]
+----
+# This will raise if the schema is invalid
+grammar = Rng.parse(File.read('invalid_schema.rng'), validate: true)
+----
