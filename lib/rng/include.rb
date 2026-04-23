@@ -4,7 +4,7 @@ module Rng
   class Include < Lutaml::Model::Serializable
     attribute :href, :string
     attribute :ns, :string
-    attribute :define, Define
+    attribute :define, Define, collection: true, initialize_empty: true
     attribute :grammar, Grammar
 
     xml do
