@@ -216,10 +216,30 @@ module Rng
 
     # Deep dup a pattern object
     #
+    # Uses recursive copying instead of Marshal to handle objects
+    # containing Nokogiri::XML::Element nodes (stored in element_order
+    # by lutaml-model), which cannot be serialized by Marshal.
+    #
     # @param obj [Object] Object to deep copy
     # @return [Object] Deep copy of object
     def deep_dup(obj)
-      Marshal.load(Marshal.dump(obj))
+      case obj
+      when Lutaml::Model::Serializable
+        result = obj.class.new
+        obj.class.attributes.each_key do |attr_name|
+          value = obj.public_send(attr_name)
+          result.public_send(:"#{attr_name}=", deep_dup(value))
+        end
+        result
+      when Array
+        obj.map { |o| deep_dup(o) }
+      when Hash
+        obj.each_with_object({}) { |(k, v), h| h[deep_dup(k)] = deep_dup(v) }
+      when NilClass, Symbol, Numeric, TrueClass, FalseClass
+        obj
+      else
+        obj.dup
+      end
     end
 
     # Resolve a single include directive
