@@ -9,7 +9,6 @@ module Rng
 
     xml do
       element 'name'
-      ordered
 
       namespace ::Rng::Namespaces::RngNamespace
 

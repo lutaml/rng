@@ -10,7 +10,6 @@ module Rng
 
     xml do
       element 'param'
-      ordered
 
       namespace ::Rng::Namespaces::RngNamespace
 
