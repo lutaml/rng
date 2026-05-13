@@ -321,7 +321,8 @@ module Rng
           override[:definitions].each do |override_def|
             # Check if names match
             next unless source_def[:name] && override_def[:name] &&
-                        extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
+                        extract_name_from_identifier(source_def) ==
+                        extract_name_from_identifier(override_def)
 
             # Use override instead of source
             target_tree[:definitions] << override_def
@@ -343,7 +344,8 @@ module Rng
 
         source_tree[:definitions]&.each do |source_def|
           next unless source_def[:name] && override_def[:name] &&
-                      extract_string(source_def[:name][:identifier]) == extract_string(override_def[:name][:identifier])
+                      extract_name_from_identifier(source_def) ==
+                      extract_name_from_identifier(override_def)
 
           matched = true
           break
@@ -351,6 +353,27 @@ module Rng
 
         # If no match, this is a new definition - add it
         target_tree[:definitions] << override_def unless matched
+      end
+    end
+
+    # Extract identifier string from a definition name hash.
+    # Handles both {:identifier => "name"} and
+    # {:identifier_parts => [{:char => "n"}, ...]} structures.
+    def extract_name_from_identifier(defn)
+      name = defn[:name]
+      return nil unless name.is_a?(Hash)
+
+      if name[:identifier]
+        extract_string(name[:identifier])
+      elsif name[:identifier_parts]
+        name[:identifier_parts].map do |part|
+          if part.is_a?(Hash) && part[:char]
+            c = part[:char]
+            c.respond_to?(:str) ? c.str : c.to_s
+          else
+            part.to_s
+          end
+        end.join
       end
     end
 
