@@ -585,14 +585,10 @@ module Rng
     # @param text [String] Grammar block content
     # @return [Hash] Parsed structure
     def parse_grammar_with_scope(text)
-      # Convert ## doc comments to # regular comments so the parser's whitespace
-      # rule can consume them. This preserves parseability while keeping the
-      # text structure intact (just loses ## -> # for whitespace handling).
-      processed = text.gsub(/^(\s*)##/, '\1#')
       parser = Rng::RncParser.new
 
       # Parse using grammar rule
-      parser.grammar.parse(processed.strip)
+      parser.grammar.parse(text.strip)
 
       # Return grammar structure
     rescue Parslet::ParseFailed => e
