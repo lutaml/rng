@@ -394,7 +394,7 @@ module Rng
           elsif part[:char_escape]
             # Map character escape
             char = extract_string(part[:char_escape][:char])
-            CHAR_ESCAPE_MAP[char] || char
+            CHAR_ESCAPE_MAP[char] || "\\#{char}"
           elsif part[:backslash_escape]
             # Backslash escape in identifier: \x -> x
             if part[:backslash_escape][:escaped_backslash]
