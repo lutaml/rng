@@ -415,6 +415,41 @@ RSpec.describe Rng::RncParser do
       end
     end
 
+    context 'with named pattern after ## comment' do
+      let(:input) do
+        <<~RNC
+          document =
+            element document {
+              ## test 1
+              test
+            }
+
+          test =
+            element sections {
+              attribute test { text }?
+            }
+        RNC
+      end
+
+      let(:grammar) { described_class.parse(input) }
+
+      it 'parses without error' do
+        expect { grammar }.not_to raise_error
+      end
+
+      it 'contains the element document' do
+        expect(grammar.define.map(&:name)).to include('document')
+        document_def = grammar.define.find { |d| d.name == 'document' }
+        expect(document_def.element[0].attr_name).to eq('document')
+      end
+
+      it 'contains the element sections' do
+        expect(grammar.define.map(&:name)).to include('test')
+        test_def = grammar.define.find { |d| d.name == 'test' }
+        expect(test_def.element[0].attr_name).to eq('sections')
+      end
+    end
+
     context 'with except patterns in anyName' do
       let(:input) do
         <<~RNC

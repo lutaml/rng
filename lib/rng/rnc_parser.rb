@@ -407,7 +407,8 @@ module Rng
 
     # Choice is handled at content level, not as separate pattern
     rule(:content_item) do
-      annotations.maybe >>
+      (doc_comments >> whitespace).maybe >>
+        annotations.maybe >>
         (element_def | attribute_def |
           # Datatype subtraction: identifier - ( value|identifier|choice|annotated )
           (identifier.as(:datatype_name) >>
