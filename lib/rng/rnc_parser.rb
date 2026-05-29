@@ -51,8 +51,9 @@ module Rng
     end
 
     # Character escapes for strings: \", \\, \n, \r, \t, and RELAX NG class escapes: \i, \c, \d, \w
+    # Any other \X sequence is preserved literally (e.g., \+, \-, \. in regex patterns)
     rule(:char_escape) do
-      str('\\') >> match('["\\\\ntricdw]').as(:char)
+      str('\\') >> (match('["\\\\ntricdw]') | match('[^x]')).as(:char)
     end
 
     # Identifier can contain regular chars, dots, hex escapes, or backslash escapes

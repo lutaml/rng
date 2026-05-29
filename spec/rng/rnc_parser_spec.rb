@@ -450,6 +450,68 @@ RSpec.describe Rng::RncParser do
       end
     end
 
+    context 'with escape sequences in string literals' do
+      it 'parses known escapes (\\n, \\t, \\r, \\", \\\\)' do
+        input = <<~'RNC'
+          start = element value {
+            xsd:string { pattern = "hello\nworld\ttab\r\n" }
+          }
+        RNC
+        expect { described_class.parse(input) }.not_to raise_error
+      end
+
+      it 'parses RELAX NG class escapes (\\i, \\c, \\d, \\w)' do
+        input = <<~'RNC'
+          start = element value {
+            xsd:string { pattern = "\\i\\c\\d\\w" }
+          }
+        RNC
+        expect { described_class.parse(input) }.not_to raise_error
+      end
+
+      it 'parses unknown escape sequences (\\+, \\-, \\s, \\., \\,) preserving backslash' do
+        input = <<~'RNC'
+          start = element value {
+            xsd:string { pattern = "[\\+\\-]?\\d{4}" }
+          }
+        RNC
+        expect { described_class.parse(input) }.not_to raise_error
+      end
+
+      it 'parses ISO 8601 regex pattern with multiple escape sequences' do
+        input = <<~'RNC'
+          ISO8601DateTime = xsd:string { pattern = "([\\+\\-]?\\d{4})((-?)((0[1-9]|1[0-2])((-?)([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24:?00)([\\.,]\\d+)?)?((:?)[0-5]\\d([.,]\\d+)?)?([zZ]|([\\+\\-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?)?)?" }
+          elem = element elem { ISO8601DateTime }
+        RNC
+        expect { described_class.parse(input) }.not_to raise_error
+      end
+
+      it 'rejects invalid hex escape \\x{}' do
+        # Single-quoted heredoc: \x{} is literal \x{} (one backslash)
+        input = <<~'RNC'
+          start = element value {
+            xsd:string { pattern = "\x{}" }
+          }
+        RNC
+        expect do
+          described_class.parse(input)
+        end.to raise_error(Parslet::ParseFailed)
+      end
+
+      it 'round-trips unknown escape sequences preserving backslash' do
+        rnc_input = <<~'RNC'
+          start = element value {
+            xsd:string { pattern = "[\\+\\-]?\\d{4}" }
+          }
+        RNC
+        grammar = described_class.parse(rnc_input)
+        rnc_output = described_class.to_rnc(grammar)
+        expect(rnc_output).to include('\\+')
+        expect(rnc_output).to include('\\-')
+        expect(rnc_output).to include('\\d')
+      end
+    end
+
     context 'with except patterns in anyName' do
       let(:input) do
         <<~RNC
