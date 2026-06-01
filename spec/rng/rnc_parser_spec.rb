@@ -182,6 +182,43 @@ RSpec.describe Rng::RncParser do
       end
     end
 
+    context 'with occurrence markers on bare ref patterns' do
+      def build_rng(form)
+        rnc = "start = element root { #{form} }\nitem = element item { text }\n"
+        tree = Rng::ParseTreeProcessor.new(described_class.new.parse(rnc)).normalize.grammar_tree
+        described_class.convert_to_rng(tree)
+      end
+
+      it 'emits a bare <ref> when there is no occurrence marker' do
+        rng_xml = build_rng('item')
+        expect(rng_xml).to include('<ref name="item"/>')
+        expect(rng_xml).not_to match(%r{<(zeroOrMore|oneOrMore|optional)>})
+      end
+
+      it 'wraps ref* in <zeroOrMore>' do
+        rng_xml = build_rng('item*')
+        expect(rng_xml).to match(%r{<zeroOrMore>\s*<ref name="item"/>\s*</zeroOrMore>})
+      end
+
+      it 'wraps ref+ in <oneOrMore>' do
+        rng_xml = build_rng('item+')
+        expect(rng_xml).to match(%r{<oneOrMore>\s*<ref name="item"/>\s*</oneOrMore>})
+      end
+
+      it 'wraps ref? in <optional>' do
+        rng_xml = build_rng('item?')
+        expect(rng_xml).to match(%r{<optional>\s*<ref name="item"/>\s*</optional>})
+      end
+
+      it 'populates ZeroOrMore on the parsed Grammar for ref*' do
+        grammar = described_class.parse("start = element root { item* }\nitem = element item { text }\n")
+        element = grammar.start.first.element
+        expect(element.zeroOrMore.length).to eq(1)
+        expect(element.zeroOrMore.first.ref.map(&:name)).to eq(['item'])
+        expect(element.ref).to be_empty
+      end
+    end
+
     context 'with pattern references in choice' do
       let(:input) do
         <<~RNC

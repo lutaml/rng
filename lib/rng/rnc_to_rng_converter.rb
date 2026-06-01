@@ -997,7 +997,21 @@ module Rng
         ref_name = process_identifier(item[:ref])
         raise StandardError, "subtraction operator '-' cannot be used as a pattern" if ref_name == '-'
 
-        xml.ref(name: ref_name)
+        occurrence = item[:occurrence]
+
+        if occurrence
+          occurrence_tag = case occurrence.to_s
+                           when '*' then 'zeroOrMore'
+                           when '+' then 'oneOrMore'
+                           when '?' then 'optional'
+                           end
+
+          xml.send(occurrence_tag) do
+            xml.ref(name: ref_name)
+          end
+        else
+          xml.ref(name: ref_name)
+        end
       elsif item.key?(:prefix) && item.key?(:type)
         # Datatype reference (e.g., xsd:string { maxLength = "100" })
         data_attrs = {
