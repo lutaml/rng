@@ -938,11 +938,17 @@ module Rng
 
         wrap_with_occurrence(xml, occurrence) { element_block.call(xml) }
       elsif item.key?(:text)
-        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
+        wrap_with_occurrence(xml, item[:occurrence]) do
+          xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
+        end
       elsif item.key?(:empty)
-        xml.parent << Nokogiri::XML::Node.new('empty', xml.doc)
+        wrap_with_occurrence(xml, item[:occurrence]) do
+          xml.parent << Nokogiri::XML::Node.new('empty', xml.doc)
+        end
       elsif item.key?(:not_allowed)
-        xml.parent << Nokogiri::XML::Node.new('notAllowed', xml.doc)
+        wrap_with_occurrence(xml, item[:occurrence]) do
+          xml.parent << Nokogiri::XML::Node.new('notAllowed', xml.doc)
+        end
       elsif item.key?(:list_content)
         xml.list do
           process_list_content(xml, item[:list_content])
@@ -976,21 +982,25 @@ module Rng
           type: process_identifier(item[:type]),
           datatypeLibrary: 'http://www.w3.org/2001/XMLSchema-datatypes'
         }
-        if item[:params]
-          xml.data(data_attrs) do
-            params = item[:params].is_a?(Array) ? item[:params] : [item[:params]]
-            params.each do |param|
-              param_name = process_identifier(param[:param_name])
-              param_value = process_string_literal(param[:param_value])
-              xml.param(param_value, name: param_name)
+        wrap_with_occurrence(xml, item[:occurrence]) do
+          if item[:params]
+            xml.data(data_attrs) do
+              params = item[:params].is_a?(Array) ? item[:params] : [item[:params]]
+              params.each do |param|
+                param_name = process_identifier(param[:param_name])
+                param_value = process_string_literal(param[:param_value])
+                xml.param(param_value, name: param_name)
+              end
             end
+          else
+            xml.data(data_attrs)
           end
-        else
-          xml.data(data_attrs)
         end
       elsif item.key?(:value)
         # Value literal (string) in element content
-        xml.value(process_string_literal(item[:value]))
+        wrap_with_occurrence(xml, item[:occurrence]) do
+          xml.value(process_string_literal(item[:value]))
+        end
       elsif item.key?(:grammar_block)
         # Inline grammar block
         grammar_data = item[:grammar_block]

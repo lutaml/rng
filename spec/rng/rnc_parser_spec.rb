@@ -182,39 +182,51 @@ RSpec.describe Rng::RncParser do
       end
     end
 
-    context 'with occurrence markers on bare ref patterns' do
-      def root_element(form)
-        rnc = "start = element root { #{form} }\nitem = element item { text }\n"
+    context 'with occurrence markers on leaf patterns' do
+      def root_element_for(form, extra = '')
+        rnc = "start = element root { #{form} }\n#{extra}"
         described_class.parse(rnc).start.first.element
       end
 
-      it 'emits a bare <ref> when there is no occurrence marker' do
-        element = root_element('item')
-        expect(element.ref.map(&:name)).to eq(['item'])
-        expect(element.zeroOrMore).to be_empty
-        expect(element.oneOrMore).to be_empty
-        expect(element.optional).to be_empty
+      # On Element, :ref is a collection slot but :text/:empty/etc. are singular,
+      # so "leaf is empty" needs to handle both shapes uniformly.
+      def leaf_empty?(container, slot)
+        v = container.public_send(slot)
+        v.nil? || (v.respond_to?(:empty?) && v.empty?)
       end
 
-      it 'wraps ref* in <zeroOrMore>' do
-        element = root_element('item*')
-        expect(element.zeroOrMore.length).to eq(1)
-        expect(element.zeroOrMore.first.ref.map(&:name)).to eq(['item'])
-        expect(element.ref).to be_empty
-      end
+      # form => { slot: model accessor on Element/wrapper, extra: extra RNC needed }
+      patterns = {
+        'item'       => { slot: :ref,        extra: "item = element item { text }\n" },
+        'text'       => { slot: :text },
+        'empty'      => { slot: :empty },
+        'notAllowed' => { slot: :notAllowed },
+        '"foo"'      => { slot: :value },
+        'xsd:string' => { slot: :data }
+      }
+      wrappers = { '*' => :zeroOrMore, '+' => :oneOrMore, '?' => :optional }
 
-      it 'wraps ref+ in <oneOrMore>' do
-        element = root_element('item+')
-        expect(element.oneOrMore.length).to eq(1)
-        expect(element.oneOrMore.first.ref.map(&:name)).to eq(['item'])
-        expect(element.ref).to be_empty
-      end
+      patterns.each do |form, config|
+        slot  = config[:slot]
+        extra = config[:extra].to_s
 
-      it 'wraps ref? in <optional>' do
-        element = root_element('item?')
-        expect(element.optional.length).to eq(1)
-        expect(element.optional.first.ref.map(&:name)).to eq(['item'])
-        expect(element.ref).to be_empty
+        it "emits a bare <#{slot}> when there is no occurrence marker on #{form}" do
+          element = root_element_for(form, extra)
+          expect(leaf_empty?(element, slot)).to be(false)
+          expect(element.zeroOrMore).to be_empty
+          expect(element.oneOrMore).to be_empty
+          expect(element.optional).to be_empty
+        end
+
+        wrappers.each do |marker, wrapper|
+          it "wraps #{form}#{marker} in <#{wrapper}>" do
+            element = root_element_for("#{form}#{marker}", extra)
+            wrapper_coll = element.public_send(wrapper)
+            expect(wrapper_coll.length).to eq(1)
+            expect(wrapper_coll.first.public_send(slot).length).to eq(1)
+            expect(leaf_empty?(element, slot)).to be(true)
+          end
+        end
       end
     end
 
