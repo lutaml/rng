@@ -724,11 +724,11 @@ module Rng
       end
     end
 
-    def wrap_with_occurrence(xml, occurrence)
+    def wrap_with_occurrence(xml, occurrence, &block)
       tag = OCCURRENCE_TAGS[occurrence.to_s] if occurrence
       return yield unless tag
 
-      xml.send(tag) { yield }
+      xml.send(tag, &block)
     end
 
     def process_content_item(xml, item)

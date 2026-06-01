@@ -197,11 +197,11 @@ RSpec.describe Rng::RncParser do
 
       # form => { slot: model accessor on Element/wrapper, extra: extra RNC needed }
       patterns = {
-        'item'       => { slot: :ref,        extra: "item = element item { text }\n" },
-        'text'       => { slot: :text },
-        'empty'      => { slot: :empty },
+        'item' => { slot: :ref, extra: "item = element item { text }\n" },
+        'text' => { slot: :text },
+        'empty' => { slot: :empty },
         'notAllowed' => { slot: :notAllowed },
-        '"foo"'      => { slot: :value },
+        '"foo"' => { slot: :value },
         'xsd:string' => { slot: :data }
       }
       wrappers = { '*' => :zeroOrMore, '+' => :oneOrMore, '?' => :optional }
