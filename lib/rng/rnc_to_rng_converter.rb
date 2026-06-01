@@ -17,6 +17,8 @@ module Rng
   #   grammar = Rng::Grammar.from_xml(rng_xml)
   class RncToRngConverter
     RNG_NAMESPACE = 'http://relaxng.org/ns/structure/1.0'
+    OCCURRENCE_TAGS = { '*' => 'zeroOrMore', '+' => 'oneOrMore', '?' => 'optional' }.freeze
+    private_constant :OCCURRENCE_TAGS
 
     # Convert a parse tree to RNG XML
     #
@@ -722,6 +724,13 @@ module Rng
       end
     end
 
+    def wrap_with_occurrence(xml, occurrence)
+      tag = OCCURRENCE_TAGS[occurrence.to_s] if occurrence
+      return yield unless tag
+
+      xml.send(tag) { yield }
+    end
+
     def process_content_item(xml, item)
       if item.key?(:type) && item.key?(:name)
         # Attribute definition (has both :type and :name keys)
@@ -821,19 +830,7 @@ module Rng
           end
         end
 
-        if occurrence
-          # Wrap in occurrence element
-          occurrence_tag = case occurrence.to_s
-                           when '*' then 'zeroOrMore'
-                           when '+' then 'oneOrMore'
-                           when '?' then 'optional'
-                           end
-          xml.send(occurrence_tag) do
-            attribute_block.call(xml)
-          end
-        else
-          attribute_block.call(xml)
-        end
+        wrap_with_occurrence(xml, occurrence) { attribute_block.call(xml) }
       elsif item.key?(:name)
         # Element definition
         attrs = {}
@@ -939,20 +936,7 @@ module Rng
           end
         end
 
-        if occurrence
-          # Wrap in occurrence element
-          occurrence_tag = case occurrence.to_s
-                           when '*' then 'zeroOrMore'
-                           when '+' then 'oneOrMore'
-                           when '?' then 'optional'
-                           end
-
-          xml.send(occurrence_tag) do
-            element_block.call(xml)
-          end
-        else
-          element_block.call(xml)
-        end
+        wrap_with_occurrence(xml, occurrence) { element_block.call(xml) }
       elsif item.key?(:text)
         xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
       elsif item.key?(:empty)
@@ -968,21 +952,7 @@ module Rng
       elsif item.key?(:external_href)
         xml.externalRef(href: process_string_literal(item[:external_href]))
       elsif item.key?(:group)
-        occurrence = item[:occurrence]
-
-        if occurrence
-          occurrence_tag = case occurrence.to_s
-                           when '*' then 'zeroOrMore'
-                           when '+' then 'oneOrMore'
-                           when '?' then 'optional'
-                           end
-
-          xml.send(occurrence_tag) do
-            xml.group do
-              process_element_content(xml, item[:group])
-            end
-          end
-        else
+        wrap_with_occurrence(xml, item[:occurrence]) do
           xml.group do
             process_element_content(xml, item[:group])
           end
@@ -997,19 +967,7 @@ module Rng
         ref_name = process_identifier(item[:ref])
         raise StandardError, "subtraction operator '-' cannot be used as a pattern" if ref_name == '-'
 
-        occurrence = item[:occurrence]
-
-        if occurrence
-          occurrence_tag = case occurrence.to_s
-                           when '*' then 'zeroOrMore'
-                           when '+' then 'oneOrMore'
-                           when '?' then 'optional'
-                           end
-
-          xml.send(occurrence_tag) do
-            xml.ref(name: ref_name)
-          end
-        else
+        wrap_with_occurrence(xml, item[:occurrence]) do
           xml.ref(name: ref_name)
         end
       elsif item.key?(:prefix) && item.key?(:type)
@@ -1172,8 +1130,6 @@ module Rng
 
     # Process a single list content item (datatype or text with optional occurrence)
     def process_list_item(xml, item)
-      occurrence = item[:occurrence]&.to_s
-
       item_block = lambda do |xml_ctx|
         if item.key?(:text)
           xml_ctx.parent << Nokogiri::XML::Node.new('text', xml_ctx.doc)
@@ -1193,18 +1149,7 @@ module Rng
         end
       end
 
-      if occurrence
-        occurrence_tag = case occurrence
-                         when '*' then 'zeroOrMore'
-                         when '+' then 'oneOrMore'
-                         when '?' then 'optional'
-                         end
-        xml.send(occurrence_tag) do
-          item_block.call(xml)
-        end
-      else
-        item_block.call(xml)
-      end
+      wrap_with_occurrence(xml, item[:occurrence]) { item_block.call(xml) }
     end
 
     # Process name except clause for wildcards
