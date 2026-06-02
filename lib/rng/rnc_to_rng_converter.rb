@@ -1243,18 +1243,17 @@ module Rng
 
     # Process attribute type content (factored out for wildcard support)
     def process_attribute_type(xml, type_info)
-      if type_info == 'text' || (type_info.is_a?(Hash) && type_info.key?(:text_type))
-        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
-      elsif type_info.is_a?(Hash) && type_info.key?(:value_choice)
-        # Choice of value literals
+      if type_info.is_a?(Hash) && type_info.key?(:attribute_choice)
+        # Choice of attribute items (text / value literals / refs)
         xml.choice do
-          # First value (before the choice operator)
-          xml.value(process_string_literal(type_info[:value]))
-          # Remaining values (after | operators)
-          type_info[:value_choice].each do |val|
-            xml.value(process_string_literal(val[:value]))
+          # The first item is hoisted alongside the rest of the choice
+          emit_attribute_choice_item(xml, type_info)
+          type_info[:attribute_choice].each do |item|
+            emit_attribute_choice_item(xml, item)
           end
         end
+      elsif type_info == 'text' || (type_info.is_a?(Hash) && type_info.key?(:text_type))
+        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
       elsif type_info.is_a?(Hash) && type_info.key?(:value)
         # Single value literal
         xml.value(process_string_literal(type_info[:value]))
@@ -1279,6 +1278,16 @@ module Rng
         else
           xml.data(data_attrs)
         end
+      end
+    end
+
+    def emit_attribute_choice_item(xml, item)
+      if item.key?(:text_type)
+        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
+      elsif item.key?(:value)
+        xml.value(process_string_literal(item[:value]))
+      elsif item.key?(:ref)
+        xml.ref(name: process_identifier(item[:ref]))
       end
     end
 

@@ -426,21 +426,10 @@ module Rng
       if attr.value
         value_str = attr.value.is_a?(Value) ? attr.value.value : attr.value.to_s
         result += "\"#{value_str}\""
-      # Check for choice of values
+      # Check for choice (values, text, refs, etc.) — delegate to the
+      # canonical choice builder so every member type is preserved
       elsif attr.choice
-        # Check if choice contains Value objects
-        choice_obj = attr.choice
-        if choice_obj.value.is_a?(Array)
-          # Choice with array of Value objects
-          values = choice_obj.value.map do |v|
-            v_str = v.is_a?(Value) ? v.value : v.to_s
-            "\"#{escape_rnc_string(v_str)}\""
-          end
-          result += values.join(' | ')
-        else
-          # Other choice patterns
-          result += build_pattern(attr.choice)
-        end
+        result += build_choice(attr.choice)
       # Check for datatype
       elsif attr.data
         result += if attr.data.type
