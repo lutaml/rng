@@ -29,15 +29,37 @@ module Rng
     # @param visited_files [Set] Set of already visited file paths (for circular detection)
     # @return [Grammar] Parsed grammar object
     def parse_file(file_path, base_dir = nil, visited_files = Set.new)
-      tree = parse_file_to_tree(file_path, base_dir, visited_files)
+      abs_path = track_visited_file(file_path, base_dir, visited_files)
+
+      # Read file content
+      raise "Include file not found: #{abs_path}" unless File.exist?(abs_path)
+
+      parse_tree_to_grammar(File.read(abs_path), abs_path, visited_files)
+    end
+
+    # Parse in-memory RNC content with optional include resolution.
+    #
+    # @param content [String] RNC content
+    # @param location [String] Source file path used to resolve relative includes
+    # @param visited_files [Set] Set of already visited file paths (for circular detection)
+    # @return [Grammar] Parsed grammar object
+    def parse_content(content, location:, visited_files: Set.new)
+      abs_path = track_visited_file(location, nil, visited_files)
+      parse_tree_to_grammar(content, abs_path, visited_files)
+    end
+
+    private
+
+    def parse_tree_to_grammar(content, abs_path, visited_files)
+      base_dir = File.dirname(abs_path)
+      tree = parse_content_to_tree(content)
 
       # Process raw_grammar/raw_override/raw_patterns first (before include resolution)
       # The include processor needs parsed content in the tree
       process_raw_nodes!(tree)
 
       # Process any includes in the tree (top-level or grammar-level)
-      process_includes(tree, base_dir || File.dirname(File.expand_path(file_path)),
-                       visited_files)
+      process_includes(tree, base_dir, visited_files)
 
       # Extract namespace from wrapper level if present
       namespace = tree[:namespace]
@@ -51,47 +73,36 @@ module Rng
       Grammar.from_xml(rng_xml)
     end
 
-    private
-
     # Parse file to parse tree (not Grammar object)
     #
     # @param file_path [String] Path to RNC file
     # @param base_dir [String, nil] Base directory for resolving relative paths
     # @param visited_files [Set] Set of already visited file paths
-    # @return [Hash] Parse tree
+    # @return [Array<Hash, String>] Parse tree and resolved absolute path
     def parse_file_to_tree(file_path, base_dir = nil, visited_files = Set.new)
-      # Resolve absolute path to prevent circular includes
-      abs_path = File.expand_path(file_path, base_dir)
-
-      # Check for circular includes
-      raise "Circular include detected: #{abs_path}" if visited_files.include?(abs_path)
-
-      # Mark file as visited
-      visited_files.add(abs_path)
+      abs_path = track_visited_file(file_path, base_dir, visited_files)
 
       # Read file content
       raise "Include file not found: #{abs_path}" unless File.exist?(abs_path)
 
-      content = File.read(abs_path)
-
-      # Parse with includes, passing the directory for relative path resolution
-      parse_with_includes(content, File.dirname(abs_path), visited_files)
+      [parse_content_to_tree(File.read(abs_path)), abs_path]
     end
 
-    # Parse RNC content and resolve includes
+    def track_visited_file(file_path, base_dir, visited_files)
+      abs_path = File.expand_path(file_path, base_dir)
+      raise "Circular include detected: #{abs_path}" if visited_files.include?(abs_path)
+
+      visited_files.add(abs_path)
+      abs_path
+    end
+
+    # Parse RNC content into a raw parse tree.
     #
     # @param content [String] RNC content
-    # @param base_dir [String, nil] Base directory for resolving relative paths
-    # @param visited_files [Set] Set of already visited file paths
-    # @return [Hash] Parse tree with includes resolved
-    def parse_with_includes(content, base_dir = nil, visited_files = Set.new)
+    # @return [Hash] Raw parse tree
+    def parse_content_to_tree(content)
       parser = RncParser.new
-      tree = parser.parse(content.strip)
-
-      # Process includes in the tree
-      process_includes(tree, base_dir, visited_files)
-
-      tree
+      parser.parse(content.strip)
     end
 
     # Process include directives by recursively parsing included files
@@ -140,27 +151,7 @@ module Rng
         href = extract_string_literal(include_item[:href])
         override = parse_override(include_item[:override])
 
-        # Resolve file path relative to base_dir
-        included_file_path = base_dir ? File.join(base_dir, href) : href
-
-        # Parse included file recursively
-        included_tree = parse_file_to_tree(included_file_path, base_dir,
-                                           visited_files.dup)
-
-        # Process raw grammar/override/patterns before extracting
-        process_raw_nodes!(included_tree)
-
-        # Extract grammar from included tree
-        included_grammar = extract_grammar_tree(included_tree)
-
-        # Recursively process includes in the included file
-        if included_grammar[:includes] && !included_grammar[:includes].empty?
-          process_includes(included_tree, File.dirname(included_file_path),
-                           visited_files.dup)
-
-          # Re-extract grammar after processing its includes
-          included_grammar = extract_grammar_tree(included_tree)
-        end
+        included_grammar = resolve_included_grammar(href, base_dir, visited_files.dup)
 
         # Merge included definitions into temporary grammar_tree
         merge_included_grammar(grammar_tree, included_grammar, override)
@@ -191,28 +182,7 @@ module Rng
       href = extract_string_literal(include_item[:href])
       override = parse_override(include_item[:override])
 
-      # Resolve file path relative to base_dir
-      included_file_path = base_dir ? File.join(base_dir, href) : href
-
-      # Parse included file recursively
-      included_tree = parse_file_to_tree(included_file_path, base_dir,
-                                         visited_files.dup)
-
-      # Process raw grammar/override/patterns before extracting
-      process_raw_nodes!(included_tree)
-
-      # Extract grammar from included tree
-      included_grammar = extract_grammar_tree(included_tree)
-
-      # Recursively process includes in the included file
-      if included_grammar[:includes] && !included_grammar[:includes].empty?
-        # Process includes in the included file
-        process_includes(included_tree, File.dirname(included_file_path),
-                         visited_files.dup)
-
-        # Re-extract grammar after processing its includes
-        included_grammar = extract_grammar_tree(included_tree)
-      end
+      included_grammar = resolve_included_grammar(href, base_dir, visited_files.dup)
 
       # Merge included definitions into current tree
       merge_included_grammar(grammar_tree, included_grammar, override)
@@ -228,6 +198,13 @@ module Rng
       else
         tree
       end
+    end
+
+    def resolve_included_grammar(file_path, base_dir, visited_files)
+      tree, abs_path = parse_file_to_tree(file_path, base_dir, visited_files)
+      process_raw_nodes!(tree)
+      process_includes(tree, File.dirname(abs_path), visited_files)
+      build_grammar_tree(tree)
     end
 
     # Process raw_grammar/raw_override/raw_patterns nodes in-place

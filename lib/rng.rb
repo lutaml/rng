@@ -72,8 +72,10 @@ module Rng
     ExternalRefResolver.new(grammar, location: location).resolve
   end
 
-  def self.parse_rnc(rnc)
-    ParseRnc.parse(rnc)
+  def self.parse_rnc(rnc, location: nil)
+    return RncParser.parse(rnc) unless location
+
+    IncludeProcessor.new.parse_content(rnc, location: location)
   end
 
   def self.parse_file(file_path)
