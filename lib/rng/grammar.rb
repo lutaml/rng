@@ -3,6 +3,14 @@
 module Rng
   # This represents the RNG schema
   class Grammar < Lutaml::Model::Serializable
+    # Non-serialized diagnostics, e.g. unresolved external-reference hrefs
+    # collected when parsing without resolve_external.
+    attr_writer :warnings
+
+    def warnings
+      @warnings ||= []
+    end
+
     attribute :id, :string
     attribute :ns, :string
     attribute :datatypeLibrary, :string

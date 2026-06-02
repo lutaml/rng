@@ -67,7 +67,11 @@ module Rng
   def parse(rng, location: nil, nested_schema: false, validate: false, resolve_external: false)
     SchemaValidator.validate(rng) if validate && !nested_schema
     grammar = Grammar.from_xml(rng)
-    return grammar unless resolve_external
+
+    unless resolve_external
+      grammar.warnings = ExternalRefResolver.unresolved_ref_hrefs(grammar)
+      return grammar
+    end
 
     ExternalRefResolver.new(grammar, location: location).resolve
   end

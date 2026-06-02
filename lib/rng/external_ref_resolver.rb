@@ -22,6 +22,41 @@ module Rng
       end
     end
 
+    # Scan a grammar for unresolved external references.
+    #
+    # Walks the object graph forward-only via lutaml attribute reflection
+    # and collects a descriptive message for every Include, ExternalRef, and
+    # ParentRef found, including its href/name so callers can match on it.
+    #
+    # @param grammar [Grammar] The grammar to scan
+    # @return [Array<String>] Descriptive messages for unresolved references
+    def self.unresolved_ref_hrefs(grammar)
+      messages = []
+      collect_unresolved_refs(grammar, messages, [])
+      messages
+    end
+
+    # @api private
+    def self.collect_unresolved_refs(obj, messages, seen)
+      case obj
+      when Include
+        messages << "Unresolved include href: #{obj.href}" if obj.href
+      when ExternalRef
+        messages << "Unresolved externalRef href: #{obj.href}" if obj.href
+      when ParentRef
+        messages << "Unresolved parentRef name: #{obj.name}" if obj.name
+      end
+
+      return unless obj.is_a?(Lutaml::Model::Serializable)
+      return if seen.include?(obj.object_id)
+
+      seen << obj.object_id
+      obj.class.attributes.each_key do |attr_name|
+        value = obj.public_send(attr_name)
+        Array(value).each { |child| collect_unresolved_refs(child, messages, seen) }
+      end
+    end
+
     # Initialize the resolver
     #
     # @param grammar [Grammar] The grammar to resolve external refs in
@@ -83,18 +118,14 @@ module Rng
       # Copy start pattern
       if grammar.start && !grammar.start.empty?
         new_grammar.start = grammar.start.filter_map do |s|
-          resolved = resolve_pattern(deep_dup(s), base_dir, visited_files)
-          clear_element_order!(resolved)
-          resolved
+          resolve_pattern(deep_dup(s), base_dir, visited_files)
         end
       end
 
       # Copy define patterns
       if grammar.define && !grammar.define.empty?
         new_grammar.define = grammar.define.filter_map do |d|
-          resolved = resolve_pattern(deep_dup(d), base_dir, visited_files)
-          clear_element_order!(resolved)
-          resolved
+          resolve_pattern(deep_dup(d), base_dir, visited_files)
         end
       end
 
@@ -102,66 +133,8 @@ module Rng
       return unless grammar.div && !grammar.div.empty?
 
       new_grammar.div = grammar.div.filter_map do |div|
-        resolved_div = resolve_div(deep_dup(div), base_dir, visited_files)
-        clear_element_order!(resolved_div)
-        resolved_div
+        resolve_div(deep_dup(div), base_dir, visited_files)
       end
-    end
-
-    # Recursively clear element_order on an object and its children
-    # This forces to_xml to use Ruby attributes instead of stale XML nodes
-    #
-    # @param obj [Object] Object to clear element_order on
-    def clear_element_order!(obj)
-      return obj unless obj
-
-      obj.instance_variable_set(:@element_order, nil)
-
-      # Recursively clear on children based on type
-      case obj
-      when Start
-        %i[element choice group interleave mixed optional zeroOrMore
-           oneOrMore text empty value data list parentRef notAllowed grammar].each do |attr|
-          children = obj.send(attr)
-          next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-          Array(children).each { |c| clear_element_order!(c) }
-        end
-      when Define
-        %i[ref element choice group interleave mixed optional zeroOrMore
-           oneOrMore text empty value data list notAllowed attribute grammar].each do |attr|
-          children = obj.send(attr)
-          next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-          Array(children).each { |c| clear_element_order!(c) }
-        end
-      when Element
-        %i[attribute ref choice group interleave mixed optional zeroOrMore
-           oneOrMore anyName text empty value data list notAllowed element grammar].each do |attr|
-          children = obj.send(attr)
-          next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-          Array(children).each { |c| clear_element_order!(c) }
-        end
-      when Group
-        %i[attribute ref choice group interleave mixed optional zeroOrMore
-           oneOrMore text empty value data list notAllowed].each do |attr|
-          children = obj.send(attr)
-          next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-          Array(children).each { |c| clear_element_order!(c) }
-        end
-      when Div
-        obj.div&.each { |d| clear_element_order!(d) }
-        %i[start define].each do |attr|
-          children = obj.send(attr)
-          next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-          Array(children).each { |c| clear_element_order!(c) }
-        end
-      end
-
-      obj
     end
 
     # Resolve includes and return array of resolved grammars/content
@@ -230,6 +203,7 @@ module Rng
           value = obj.public_send(attr_name)
           result.public_send(:"#{attr_name}=", deep_dup(value))
         end
+        copy_order_ivars!(obj, result)
         result
       when Array
         obj.map { |o| deep_dup(o) }
@@ -240,6 +214,21 @@ module Rng
         obj
       else
         obj.dup
+      end
+    end
+
+    # Carry lutaml's document-order ivars onto a deep-dup'd object so to_xml
+    # emits children in source order. These hold Lutaml::Xml::Element value
+    # objects (name/type), not live Nokogiri nodes.
+    #
+    # @param source [Object] Original object
+    # @param result [Object] Deep-dup'd copy
+    def copy_order_ivars!(source, result)
+      %i[@element_order @attribute_order].each do |ivar|
+        next unless source.instance_variable_defined?(ivar)
+
+        order = source.instance_variable_get(ivar)
+        result.instance_variable_set(ivar, order&.dup)
       end
     end
 
@@ -310,30 +299,39 @@ module Rng
     def resolve_pattern(pattern, base_dir, visited_files)
       return unless pattern
 
-      # Handle Element pattern
       case pattern
       when Element
         resolve_element_external_ref!(pattern, base_dir, visited_files)
-
-        # Recursively resolve in Element's children
-        resolve_element_children!(pattern, base_dir, visited_files)
-      # Handle Group pattern
+        resolve_child_patterns!(pattern, base_dir, visited_files)
       when Group
         resolve_group_external_ref!(pattern, base_dir, visited_files)
-
-        # Recursively resolve in Group's children
-        resolve_group_children!(pattern, base_dir, visited_files)
-      # Handle Define pattern
-      when Define
-        resolve_define_children!(pattern, base_dir, visited_files)
-      # Handle Start pattern
-      when Start
-        resolve_start_children!(pattern, base_dir, visited_files)
-      when Start
-        resolve_pattern_children!(pattern, base_dir, visited_files)
+        resolve_child_patterns!(pattern, base_dir, visited_files)
+      when Define, Start
+        resolve_child_patterns!(pattern, base_dir, visited_files)
       end
 
       pattern
+    end
+
+    # Recursively resolve external refs in a pattern's child patterns.
+    #
+    # Walks forward via lutaml attribute reflection (same approach as
+    # collect_unresolved_refs) instead of curated per-type attribute lists.
+    # Scalars are skipped by the Serializable guard. Only Element/Group/Define/
+    # Start dispatch into externalRef handling in resolve_pattern, so every
+    # other Serializable child is a no-op and the recursion stays bounded.
+    #
+    # @param pattern [Object] Pattern whose children to resolve
+    # @param base_dir [String] Base directory for href resolution
+    # @param visited_files [Set] Set of visited file paths
+    def resolve_child_patterns!(pattern, base_dir, visited_files)
+      pattern.class.attributes.each_key do |attr_name|
+        Array(pattern.public_send(attr_name)).each do |child|
+          next unless child.is_a?(Lutaml::Model::Serializable)
+
+          resolve_pattern(child, base_dir, visited_files)
+        end
+      end
     end
 
     # Resolve external ref in an Element
@@ -386,9 +384,16 @@ module Rng
 
     # Copy pattern content from source to target
     #
+    # Rebuilds target's content from attributes, so its own document-order
+    # ivars no longer describe what it holds (e.g. an externalRef entry was
+    # replaced). Clear them on target only; children keep their own order.
+    #
     # @param target [Object] Target pattern (Element, Group, etc.)
     # @param source [Object] Source pattern
     def copy_pattern_content(target, source)
+      target.instance_variable_set(:@element_order, nil)
+      target.instance_variable_set(:@attribute_order, nil)
+
       case source
       when Start
         # Start pattern - copy its content (element, choice, group, etc.)
@@ -407,8 +412,6 @@ module Rng
                                          value data list notAllowed externalRef])
       when Choice
         target.choice = source.choice if source.choice
-      when Group
-        target.group = source.group if source.group
       when Interleave
         target.interleave = source.interleave if source.interleave
       when Optional
@@ -489,80 +492,6 @@ module Rng
     def replace_group_external_ref!(group, start_pattern)
       group.externalRef = nil
       copy_pattern_content(group, start_pattern)
-    end
-
-    # Recursively resolve children of an Element
-    #
-    # @param element [Element] Element to resolve children in
-    # @param base_dir [String] Base directory
-    # @param visited_files [Set] Set of visited file paths
-    def resolve_element_children!(element, base_dir, visited_files)
-      %i[attribute ref choice group interleave mixed optional zeroOrMore
-         oneOrMore anyName text empty value data list notAllowed element grammar].each do |attr|
-        children = element.send(attr)
-        next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-        Array(children).each do |child|
-          resolve_pattern(child, base_dir, visited_files)
-        end
-      end
-    end
-
-    # Recursively resolve children of a Group
-    #
-    # @param group [Group] Group to resolve children in
-    # @param base_dir [String] Base directory
-    # @param visited_files [Set] Set of visited file paths
-    def resolve_group_children!(group, base_dir, visited_files)
-      %i[attribute ref choice group interleave mixed optional zeroOrMore
-         oneOrMore text empty value data list notAllowed].each do |attr|
-        children = group.send(attr)
-        next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-        Array(children).each do |child|
-          resolve_pattern(child, base_dir, visited_files)
-        end
-      end
-    end
-
-    # Recursively resolve children of a Start pattern
-    #
-    # @param start [Start] Start pattern to resolve children in
-    # @param base_dir [String] Base directory
-    # @param visited_files [Set] Set of visited file paths
-    def resolve_start_children!(start, base_dir, visited_files)
-      # Start has: element, choice, group, interleave, mixed, optional,
-      #            zeroOrMore, oneOrMore, text, empty, value, data, list,
-      #            parentRef, notAllowed, grammar
-      %i[element choice group interleave mixed optional zeroOrMore
-         oneOrMore text empty value data list parentRef notAllowed grammar].each do |attr|
-        children = start.send(attr)
-        next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-        Array(children).each do |child|
-          resolve_pattern(child, base_dir, visited_files)
-        end
-      end
-    end
-
-    # Recursively resolve children of a Define
-    #
-    # @param define [Define] Define to resolve children in
-    # @param base_dir [String] Base directory
-    # @param visited_files [Set] Set of visited file paths
-    def resolve_define_children!(define, base_dir, visited_files)
-      # Define has: ref, element, choice, group, interleave, mixed, optional,
-      #            zeroOrMore, oneOrMore, text, empty, value, data, list,
-      #            notAllowed, attribute, grammar
-      %i[ref element choice group interleave mixed optional zeroOrMore
-         oneOrMore text empty value data list notAllowed attribute grammar].each do |attr|
-        children = define.send(attr)
-        next if children.nil? || (children.respond_to?(:empty?) && children.empty?)
-
-        Array(children).each do |child|
-          resolve_pattern(child, base_dir, visited_files)
-        end
-      end
     end
 
     # Resolve href to absolute path with cycle detection
