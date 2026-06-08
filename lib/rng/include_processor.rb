@@ -39,53 +39,35 @@ module Rng
 
     # Parse in-memory RNC content with optional include resolution.
     #
+    # When +location+ is nil, includes are not resolved and the pipeline matches
+    # {RncParser.parse} exactly. When +location+ is a file path, relative
+    # +include+ directives are resolved against that file's directory.
+    #
     # @param content [String] RNC content
-    # @param location [String] Source file path used to resolve relative includes
+    # @param location [String, nil] Source file path used to resolve relative includes
     # @param visited_files [Set] Set of already visited file paths (for circular detection)
     # @return [Grammar] Parsed grammar object
-    def parse_content(content, location:, visited_files: Set.new)
-      abs_path = track_visited_file(location, nil, visited_files)
+    def parse_content(content, location: nil, visited_files: Set.new)
+      abs_path = location && track_visited_file(location, nil, visited_files)
       parse_tree_to_grammar(content, abs_path, visited_files)
     end
 
     private
 
     def parse_tree_to_grammar(content, abs_path, visited_files)
-      base_dir = File.dirname(abs_path)
       tree = parse_content_to_tree(content)
 
-      # Process raw_grammar/raw_override/raw_patterns first (before include resolution)
-      # The include processor needs parsed content in the tree
-      process_raw_nodes!(tree)
+      if abs_path
+        # process_includes runs before normalize and needs raw_override /
+        # raw_grammar / raw_patterns expanded so it can walk the parsed
+        # subtrees. normalize would do this on the grammar_tree later, but
+        # by then process_includes has already executed.
+        process_raw_nodes!(tree)
+        process_includes(tree, File.dirname(abs_path), visited_files)
+      end
 
-      # Process any includes in the tree (top-level or grammar-level)
-      process_includes(tree, base_dir, visited_files)
-
-      # Extract namespace from wrapper level if present
-      namespace = tree[:namespace]
-
-      # Build grammar tree from different structures
-      grammar_tree = build_grammar_tree(tree)
-      grammar_tree[:namespace] = namespace if namespace
-
-      # Convert to RNG XML and then to Grammar object
-      rng_xml = @converter.convert(grammar_tree)
+      rng_xml = @converter.convert(build_grammar_tree(tree))
       Grammar.from_xml(rng_xml)
-    end
-
-    # Parse file to parse tree (not Grammar object)
-    #
-    # @param file_path [String] Path to RNC file
-    # @param base_dir [String, nil] Base directory for resolving relative paths
-    # @param visited_files [Set] Set of already visited file paths
-    # @return [Array<Hash, String>] Parse tree and resolved absolute path
-    def parse_file_to_tree(file_path, base_dir = nil, visited_files = Set.new)
-      abs_path = track_visited_file(file_path, base_dir, visited_files)
-
-      # Read file content
-      raise "Include file not found: #{abs_path}" unless File.exist?(abs_path)
-
-      [parse_content_to_tree(File.read(abs_path)), abs_path]
     end
 
     def track_visited_file(file_path, base_dir, visited_files)
@@ -98,11 +80,15 @@ module Rng
 
     # Parse RNC content into a raw parse tree.
     #
+    # Applies hex-escape preprocessing so callers get the same parse tree
+    # they would from {RncParser.parse}. Preprocessing is idempotent on input
+    # that contains no hex escapes outside string literals, so it is safe to
+    # apply to file content as well.
+    #
     # @param content [String] RNC content
     # @return [Hash] Raw parse tree
     def parse_content_to_tree(content)
-      parser = RncParser.new
-      parser.parse(content.strip)
+      RncParser.new.parse(RncParser.preprocess_hex_escapes(content.strip))
     end
 
     # Process include directives by recursively parsing included files
@@ -201,7 +187,10 @@ module Rng
     end
 
     def resolve_included_grammar(file_path, base_dir, visited_files)
-      tree, abs_path = parse_file_to_tree(file_path, base_dir, visited_files)
+      abs_path = track_visited_file(file_path, base_dir, visited_files)
+      raise "Include file not found: #{abs_path}" unless File.exist?(abs_path)
+
+      tree = parse_content_to_tree(File.read(abs_path))
       process_raw_nodes!(tree)
       process_includes(tree, File.dirname(abs_path), visited_files)
       build_grammar_tree(tree)
