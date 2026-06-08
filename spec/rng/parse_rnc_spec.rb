@@ -3,12 +3,12 @@
 require 'spec_helper'
 require 'tmpdir'
 
-RSpec.describe Rng do
+RSpec.describe 'ParseRncSpec' do
   describe '.parse_rnc' do
     let(:simple_rnc) { 'element foo { text }' }
 
     it 'returns a Grammar for include-free RNC without a location' do
-      parsed = described_class.parse_rnc(simple_rnc)
+      parsed = Rng.parse_rnc(simple_rnc)
 
       expect(parsed).to be_a(Rng::Grammar)
       expect(parsed.start.first.element.attr_name).to eq('foo')
@@ -23,8 +23,8 @@ RSpec.describe Rng do
       Dir.mktmpdir do |dir|
         scratch = File.join(dir, 'scratch.rnc')
 
-        without_location = described_class.parse_rnc(rnc)
-        with_location = described_class.parse_rnc(rnc, location: scratch)
+        without_location = Rng.parse_rnc(rnc)
+        with_location = Rng.parse_rnc(rnc, location: scratch)
 
         expect(with_location.to_xml).to be_xml_equivalent_to(without_location.to_xml)
         expect(with_location.start.first.element.attr_name).to eq('root')
@@ -45,7 +45,7 @@ RSpec.describe Rng do
           }
         RNC
 
-        parsed = described_class.parse_rnc(File.read(parent_path), location: parent_path)
+        parsed = Rng.parse_rnc(File.read(parent_path), location: parent_path)
 
         expect(parsed.define.map(&:name)).to include('ChildPattern')
         expect(parsed.start.first.element.attr_name).to eq('root')
