@@ -34,36 +34,44 @@ module Rng
       # Read file content
       raise "Include file not found: #{abs_path}" unless File.exist?(abs_path)
 
-      parse_tree_to_grammar(File.read(abs_path), abs_path, visited_files)
+      parse_tree_to_grammar(File.read(abs_path), File.dirname(abs_path), visited_files)
     end
 
     # Parse in-memory RNC content with optional include resolution.
     #
     # When +location+ is nil, includes are not resolved and the pipeline matches
-    # {RncParser.parse} exactly. When +location+ is a file path, relative
-    # +include+ directives are resolved against that file's directory.
+    # {RncParser.parse} exactly. When +location+ names an existing directory it
+    # is used directly as the base directory for relative +include+ directives.
+    # Otherwise +location+ is treated as a source file path and includes are
+    # resolved against that file's directory.
     #
     # @param content [String] RNC content
-    # @param location [String, nil] Source file path used to resolve relative includes
+    # @param location [String, nil] Base directory or source file path used to resolve relative includes
     # @param visited_files [Set] Set of already visited file paths (for circular detection)
     # @return [Grammar] Parsed grammar object
     def parse_content(content, location: nil, visited_files: Set.new)
-      abs_path = location && track_visited_file(location, nil, visited_files)
-      parse_tree_to_grammar(content, abs_path, visited_files)
+      parse_tree_to_grammar(content, resolve_base_dir(location, visited_files), visited_files)
     end
 
     private
 
-    def parse_tree_to_grammar(content, abs_path, visited_files)
+    def resolve_base_dir(location, visited_files)
+      return nil if location.nil?
+      return location if File.directory?(location)
+
+      File.dirname(track_visited_file(location, nil, visited_files))
+    end
+
+    def parse_tree_to_grammar(content, base_dir, visited_files)
       tree = parse_content_to_tree(content)
 
-      if abs_path
+      if base_dir
         # process_includes runs before normalize and needs raw_override /
         # raw_grammar / raw_patterns expanded so it can walk the parsed
         # subtrees. normalize would do this on the grammar_tree later, but
         # by then process_includes has already executed.
         process_raw_nodes!(tree)
-        process_includes(tree, File.dirname(abs_path), visited_files)
+        process_includes(tree, base_dir, visited_files)
       end
 
       rng_xml = @converter.convert(build_grammar_tree(tree))

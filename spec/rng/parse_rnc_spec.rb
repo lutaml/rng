@@ -31,11 +31,31 @@ RSpec.describe 'ParseRncSpec' do
       end
     end
 
-    it 'resolves relative includes when a location is provided' do
+    it 'resolves relative includes when location is the source directory' do
       Dir.mktmpdir do |dir|
         File.write(File.join(dir, 'child.rnc'), <<~RNC)
           ChildPattern = element child { text }
           start = element wrapped { ChildPattern }
+        RNC
+
+        parent_path = File.join(dir, 'parent.rnc')
+        File.write(parent_path, <<~RNC)
+          include "child.rnc" {
+            start = element root { ChildPattern }
+          }
+        RNC
+
+        parsed = Rng.parse_rnc(File.read(parent_path), location: dir)
+
+        expect(parsed.define.map(&:name)).to include('ChildPattern')
+        expect(parsed.start.first.element.attr_name).to eq('root')
+      end
+    end
+
+    it 'also accepts a source file path as location' do
+      Dir.mktmpdir do |dir|
+        File.write(File.join(dir, 'child.rnc'), <<~RNC)
+          ChildPattern = element child { text }
         RNC
 
         parent_path = File.join(dir, 'parent.rnc')
