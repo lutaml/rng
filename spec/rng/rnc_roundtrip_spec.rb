@@ -97,6 +97,83 @@ RSpec.describe 'RNG to RNC Round-trip Tests' do
         expect(xml).to include('<choice')
       end
 
+      it 'preserves a mixed attribute choice of text and value' do
+        rnc = <<~RNC
+          start = element doc {
+            attribute a { text | "x" }
+          }
+        RNC
+        xml = Rng.parse_rnc(rnc).to_xml
+        expect(xml).to include('<choice>')
+        expect(xml).to include('<text>')
+        expect(xml).to include('<value>x</value>')
+      end
+
+      it 'preserves a mixed attribute choice of value and ref' do
+        rnc = <<~RNC
+          start = element doc {
+            attribute a { "x" | foo }
+          }
+          foo = element foo { text }
+        RNC
+        xml = Rng.parse_rnc(rnc).to_xml
+        expect(xml).to include('<choice>')
+        expect(xml).to include('<value>x</value>')
+        expect(xml).to include('<ref name="foo"/>')
+      end
+
+      it 'preserves a mixed attribute choice of text and ref' do
+        rnc = <<~RNC
+          start = element doc {
+            attribute a { text | foo }
+          }
+          foo = element foo { text }
+        RNC
+        xml = Rng.parse_rnc(rnc).to_xml
+        expect(xml).to include('<choice>')
+        expect(xml).to include('<text>')
+        expect(xml).to include('<ref name="foo"/>')
+      end
+
+      it 'emits a mixed attribute choice of text and value back to RNC' do
+        rng = <<~RNG
+          <grammar xmlns="http://relaxng.org/ns/structure/1.0">
+            <start><element name="doc"><attribute name="indent">
+              <choice><text/><value>adaptive</value></choice>
+            </attribute></element></start>
+          </grammar>
+        RNG
+        rnc = Rng.to_rnc(Rng.parse(rng))
+        expect(rnc).to match(/attribute indent \{[^}]*text[^}]*\}/)
+        expect(rnc).to include('"adaptive"')
+      end
+
+      it 'emits a mixed attribute choice of value and ref back to RNC' do
+        rng = <<~RNG
+          <grammar xmlns="http://relaxng.org/ns/structure/1.0">
+            <start><element name="doc"><attribute name="a">
+              <choice><value>x</value><ref name="foo"/></choice>
+            </attribute></element></start>
+            <define name="foo"><text/></define>
+          </grammar>
+        RNG
+        rnc = Rng.to_rnc(Rng.parse(rng))
+        expect(rnc).to match(/attribute a \{[^}]*foo[^}]*\}/)
+        expect(rnc).to include('"x"')
+      end
+
+      it 'round-trips a mixed attribute choice of text and value through RNC and RNG' do
+        rnc = <<~RNC
+          start = element doc {
+            attribute indent { text | "adaptive" }
+          }
+        RNC
+        regenerated = Rng.to_rnc(Rng.parse(Rng.parse_rnc(rnc).to_xml))
+        # Both members of the choice must survive a full RNC -> RNG -> RNC trip
+        expect(regenerated).to match(/attribute indent \{[^}]*text[^}]*\}/)
+        expect(regenerated).to include('"adaptive"')
+      end
+
       it 'preserves interleave' do
         rnc = <<~RNC
           start = element foo {

@@ -312,12 +312,16 @@ module Rng
           value_literal >>
           (whitespace >> str('|') >> whitespace >> value_literal).repeat(1) >>
           whitespace >> str(')')).as(:datatype_except) |
-        # Non-parenthesized choice of value literals: "a" | "b" | "c"
-        (value_literal >> (whitespace >> str('|') >> whitespace >> value_literal).repeat(1).as(:value_choice)) |
+        # Non-parenthesized choice of items: "a" | "b", text | "a", "a" | ref, text | ref
+        (attribute_choice_item >> (whitespace >> str('|') >> whitespace >> attribute_choice_item).repeat(1).as(:attribute_choice)) |
         value_literal |
         datatype_ref |
         keyword('text').as(:text_type) |
         identifier.as(:ref)
+    end
+
+    rule(:attribute_choice_item) do
+      keyword('text').as(:text_type) | value_literal | identifier.as(:ref)
     end
 
     rule(:datatype_ref) do
