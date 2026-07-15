@@ -81,6 +81,24 @@ RSpec.describe Rng::Grammar do
       expect(start_element).to be_a(Rng::Element)
       expect(start_element.attr_name).to eq('addressBook')
     end
+
+    it 'resolves includes for in-memory RNC when location is the source directory' do
+      main_path = File.expand_path('spec/fixtures/rnc/main_with_include.rnc')
+      parsed = Rng.parse_rnc(File.read(main_path), location: File.dirname(main_path))
+
+      expect(parsed).to be_a(described_class)
+      expect(parsed.define.map(&:name)).to include('BasePattern', 'ExtendedPattern')
+      expect(parsed.start.first.element.attr_name).to eq('doc')
+    end
+
+    it 'matches parse_file include resolution for in-memory RNC when location is the source directory' do
+      main_path = File.expand_path('spec/fixtures/rnc/main_include_trailing.rnc')
+      from_memory = Rng.parse_rnc(File.read(main_path), location: File.dirname(main_path))
+      from_file = Rng.parse_file(main_path)
+
+      expect(from_memory.start.first.element.attr_name).to eq(from_file.start.first.element.attr_name)
+      expect(from_memory.define.map(&:name).sort).to eq(from_file.define.map(&:name).sort)
+    end
   end
 
   describe 'RNG to RNC conversion' do

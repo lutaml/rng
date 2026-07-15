@@ -39,7 +39,6 @@ module Rng
   autoload :Grammar, File.expand_path('rng/grammar', __dir__)
   autoload :Documentation, File.expand_path('rng/documentation', __dir__)
   autoload :TestSuiteParser, File.expand_path('rng/test_suite_parser', __dir__)
-  autoload :Value, File.expand_path('rng/value', __dir__)
 
   # Autoload parser support classes
   autoload :ParseTreeProcessor, File.expand_path('rng/parse_tree_processor', __dir__)
@@ -57,7 +56,6 @@ module Rng
 
   # Autoload parsers and builders
   autoload :RncParser, File.expand_path('rng/rnc_parser', __dir__)
-  autoload :ParseRnc, File.expand_path('rng/parse_rnc', __dir__)
   autoload :ToRnc, File.expand_path('rng/to_rnc', __dir__)
   autoload :RncBuilder, File.expand_path('rng/rnc_builder', __dir__)
   autoload :IncludeProcessor, File.expand_path('rng/include_processor', __dir__)
@@ -72,8 +70,8 @@ module Rng
     ExternalRefResolver.new(grammar, location: location).resolve
   end
 
-  def self.parse_rnc(rnc)
-    ParseRnc.parse(rnc)
+  def self.parse_rnc(rnc, location: nil)
+    IncludeProcessor.new.parse_content(rnc, location: location)
   end
 
   def self.parse_file(file_path)

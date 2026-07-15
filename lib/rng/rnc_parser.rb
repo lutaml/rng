@@ -668,18 +668,13 @@ module Rng
       result
     end
 
+    # Parse RNC content into a Grammar.
+    #
+    # Delegates to {IncludeProcessor#parse_content} so that this entry point
+    # and {Rng.parse_rnc} share a single canonical pipeline. With no location,
+    # include directives are not resolved.
     def self.parse(input)
-      parser = new
-      preprocessed = preprocess_hex_escapes(input.strip)
-      tree = parser.parse(preprocessed)
-
-      # Normalize parse tree
-      processor = ParseTreeProcessor.new(tree)
-      normalized = processor.normalize
-
-      # Convert to RNG XML and Grammar object
-      rng_xml = convert_to_rng(normalized.grammar_tree)
-      Grammar.from_xml(rng_xml)
+      IncludeProcessor.new.parse_content(input)
     end
 
     # Convert RNG schema to RNC
