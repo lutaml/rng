@@ -1,0 +1,13 @@
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <start>
+    <element name="root">
+      <element name="first">
+        <empty/>
+      </element>
+      <attribute name="mid"/>
+      <element name="last">
+        <empty/>
+      </element>
+    </element>
+  </start>
+</grammar>

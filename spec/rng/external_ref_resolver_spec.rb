@@ -69,6 +69,22 @@ RSpec.describe Rng::ExternalRefResolver do
       end
     end
 
+    context 'with interleaved children reached through an include' do
+      let(:order_main) { File.read('spec/fixtures/external/order_main.rng') }
+
+      it 'preserves element_order through external ref resolution' do
+        grammar = Rng::Grammar.from_xml(order_main)
+        resolved = described_class.new(grammar, location: 'spec/fixtures/external/order_main.rng').resolve
+
+        xml = resolved.to_xml
+        expect(xml.index('first')).to be < xml.index('mid')
+        expect(xml.index('mid')).to be < xml.index('last')
+
+        root = resolved.start.first.element
+        expect(root.instance_variable_get(:@element_order)).not_to be_nil
+      end
+    end
+
     context 'with non-existent external file' do
       it 'does not raise error but warns when external file not found' do
         # Create a grammar with a non-existent include
@@ -109,6 +125,13 @@ RSpec.describe Rng::ExternalRefResolver do
 
       # Without resolve_external, the grammar is returned as-is
       expect(grammar).to be_a(Rng::Grammar)
+    end
+
+    it 'warns about unresolved external references when not resolving' do
+      main_rng = File.read('spec/fixtures/external/include_main.rng')
+      grammar = Rng.parse(main_rng)
+
+      expect(grammar.warnings).to include(a_string_matching(/include_lib\.rng/))
     end
   end
 
