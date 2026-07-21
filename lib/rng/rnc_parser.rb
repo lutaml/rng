@@ -261,6 +261,23 @@ module Rng
       (whitespace >> annotation).repeat(1)
     end
 
+    # Match a `[ ... ]` annotation WITHOUT capturing anything (produces a raw
+    # slice that is discarded in a sequence). Strings and nested brackets are
+    # matched as raw characters so no `.as` capture turns the surrounding
+    # content item into an array. Used to drop a content-position annotation.
+    rule(:annotation_skip) do
+      str('[') >> annotation_skip_inner.repeat >> str(']')
+    end
+
+    rule(:annotation_skip_inner) do
+      (str('"""') >> (str('"""').absent? >> any).repeat >> str('"""')) |
+        (str("'''") >> (str("'''").absent? >> any).repeat >> str("'''")) |
+        (str('"') >> ((str('\\') >> any) | (str('"').absent? >> any)).repeat >> str('"')) |
+        (str("'") >> ((str('\\') >> any) | (str("'").absent? >> any)).repeat >> str("'")) |
+        (str('[') >> annotation_skip_inner.repeat >> str(']')) |
+        (str('[').absent? >> str(']').absent? >> str('"').absent? >> str("'").absent? >> any)
+    end
+
     # Notation/annotation: [ key = "value" ] or just [ ... ]
     # Notations are only valid when attached to patterns using >>, not as standalone preamble items
     rule(:notation) do
@@ -385,7 +402,7 @@ module Rng
     # Named pattern definition (e.g., "myPattern = element foo { text }")
     rule(:named_pattern) do
       (doc_comments >> whitespace).maybe.as(:docs) >>
-        annotations.maybe >>
+        (annotation_skip >> whitespace).repeat >>
         identifier.as(:name) >> whitespace >>
         (str('|=') | str('&=') | str('=')).as(:operator) >> whitespace >>
         pattern_list.as(:pattern)
@@ -406,17 +423,18 @@ module Rng
         (
           (whitespace >> str('&') >> whitespace >> content_item).repeat(1).as(:interleave_items) |
           (whitespace >> str('|') >> whitespace >> content_item).repeat(1).as(:choice_items) |
-          (comma? >> content_item).repeat(1).as(:sequence_items)
+          # A comma is required between top-level sequence items; a comma-less
+          # continuation would greedily swallow the following definition.
+          (whitespace >> comma >> whitespace >> content_item).repeat(1).as(:sequence_items)
         ).maybe
     end
 
     # Choice is handled at content level, not as separate pattern
     rule(:content_item) do
       (doc_comments >> whitespace).maybe >>
-        # `annotations` consumes leading whitespace but not trailing; without
-        # eating the space after `]`, a following element/attribute/ref keyword
-        # would fail to match. `.maybe` keeps the no-annotation path unchanged.
-        (annotations >> whitespace).maybe >>
+        # Drop any content-position bracket annotation(s) before the item so the
+        # following pattern still matches (annotations are not modelled here).
+        (annotation_skip >> whitespace).repeat >>
         (element_def | attribute_def |
           # Datatype subtraction: identifier - ( value|identifier|choice|annotated )
           (identifier.as(:datatype_name) >>

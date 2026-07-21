@@ -110,17 +110,94 @@ RSpec.describe 'Advanced RNC features' do
       expect { Rng.parse_rnc(rnc) }.not_to raise_error
     end
 
-    it 'parses a bracket annotation before a ref in content' do
-      rnc = <<~RNC
-        c = element c { text }
-        start = element n { [ a:defaultValue = "x" ] c }
-      RNC
-      expect { Rng.parse_rnc(rnc) }.not_to raise_error
+    it 'parses an annotated attribute within a sequence' do
+      rnc = 'start = element n { [ a:x = "1" ] attribute foo { text }, ' \
+            'attribute bar { text } }'
+      grammar = Rng.parse_rnc(rnc)
+      attrs = grammar.start.first.element.attribute.map(&:attr_name)
+      expect(attrs).to eq(%w[foo bar])
     end
 
     it 'leaves un-annotated content parsing unchanged' do
       rnc = 'start = element n { attribute foo { text } }'
       expect { Rng.parse_rnc(rnc) }.not_to raise_error
+    end
+
+    it 'does not let brackets inside an annotation string close it early' do
+      rnc = 'start = element n { [ a:x = "a]b[c" ] attribute foo { text }, ' \
+            'attribute bar { text } }'
+      grammar = Rng.parse_rnc(rnc)
+      attrs = grammar.start.first.element.attribute.map(&:attr_name)
+      expect(attrs).to eq(%w[foo bar])
+    end
+
+    it 'ignores brackets inside a single-quoted annotation string' do
+      rnc = "start = element n { [ a:x = 'a]b[c' ] attribute foo { text }, " \
+            'attribute bar { text } }'
+      grammar = Rng.parse_rnc(rnc)
+      attrs = grammar.start.first.element.attribute.map(&:attr_name)
+      expect(attrs).to eq(%w[foo bar])
+    end
+
+    it 'ignores brackets inside a triple-quoted annotation string' do
+      rnc = 'start = element n { [ a:doc [ """multi]line[x""" ] ] ' \
+            'attribute foo { text }, attribute bar { text } }'
+      grammar = Rng.parse_rnc(rnc)
+      attrs = grammar.start.first.element.attribute.map(&:attr_name)
+      expect(attrs).to eq(%w[foo bar])
+    end
+
+    it 'drops an annotation before a non-leading definition without corrupting it' do
+      rnc = "foo = element foo { text }\n" \
+            "[ a:defaultValue = \"x\" ]\n" \
+            "bar = element bar { text }\n" \
+            'start = foo'
+      grammar = Rng.parse_rnc(rnc)
+
+      expect(grammar.define.map(&:name)).to contain_exactly('foo', 'bar')
+    end
+  end
+
+  describe 'Non-leading start' do
+    it 'produces a real <start> for a start = element after other defines' do
+      rnc = "item = element item { text }\nstart = element root { item* }"
+      grammar = Rng.parse_rnc(rnc)
+
+      expect(grammar.start.first.element.attr_name).to eq('root')
+      expect(grammar.define.map(&:name)).to eq(['item'])
+    end
+
+    it 'produces a real <start> for a non-leading start = ref' do
+      rnc = "library = element library { text }\nstart = library"
+      grammar = Rng.parse_rnc(rnc)
+
+      expect(grammar.start.first.ref.name).to eq('library')
+      expect(grammar.define.map(&:name)).not_to include('start')
+    end
+
+    it 'collects multiple start |= definitions as combining starts' do
+      rnc = "a = element a { empty }\nb = element b { empty }\n" \
+            "start |= a\nstart |= b"
+      grammar = Rng.parse_rnc(rnc)
+
+      expect(grammar.start.map(&:combine)).to eq(%w[choice choice])
+      expect(grammar.start.map { |s| s.ref.name }).to contain_exactly('a', 'b')
+    end
+
+    it 'maps start &= to interleave-combining starts' do
+      rnc = "a = element a { empty }\nb = element b { empty }\n" \
+            "start &= a\nstart &= b"
+      grammar = Rng.parse_rnc(rnc)
+
+      expect(grammar.start.map(&:combine)).to eq(%w[interleave interleave])
+    end
+
+    it 'keeps an escaped \\start as a define, not the grammar start' do
+      rnc = "x = element x { text }\n\\start = element a { text }\nstart = x"
+      grammar = Rng.parse_rnc(rnc)
+
+      expect(grammar.define.map(&:name)).to include('start')
+      expect(grammar.start.first.ref.name).to eq('x')
     end
   end
 end

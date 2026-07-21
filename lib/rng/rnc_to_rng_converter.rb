@@ -62,41 +62,11 @@ module Rng
             xml.parent[:datatypeLibrary] = tree[:datatype_map].values.first
           end
 
-          # If no explicit start but we have top-level elements, wrap them in start
-          has_explicit_start = tree[:start] && tree[:start][:start_pattern]
-          has_top_elements = tree[:definitions]&.any? do |d|
-            d.key?(:top_element)
-          end
-          has_top_choice = tree[:definitions]&.any? do |d|
-            d.key?(:top_choice)
-          end
-
-          if has_explicit_start
-            # Process explicit start pattern
-            xml.start do
-              add_documentation(xml, tree[:start]) if tree[:start][:docs]
-              process_pattern_list(xml, tree[:start][:start_pattern])
-            end
-          elsif has_top_choice
-            # No explicit start, but has top-level choice - wrap in start with choice
-            first_choice = tree[:definitions].find { |d| d.key?(:top_choice) }
-            xml.start do
-              xml.choice do
-                process_content_item(xml, first_choice[:top_choice][:first])
-                first_choice[:top_choice][:choice_items]&.each do |item|
-                  process_content_item(xml, item)
-                end
-              end
-            end
-          elsif has_top_elements
-            # No explicit start, but has top-level elements - wrap first one in start
-            xml.start do
-              first_element = tree[:definitions].find do |d|
-                d.key?(:top_element)
-              end
-              process_content_item(xml, first_element[:top_element])
-            end
-          end
+          # A leading `start` (tree[:start]) or a non-leading one (emitted as
+          # <start> in the definitions loop) both suppress auto-wrapping.
+          has_explicit_start =
+            (tree[:start] && tree[:start][:start_pattern]) || nonleading_start?(tree)
+          emit_grammar_start(xml, tree)
 
           # Process named patterns and remaining top-level elements
           tree[:definitions]&.each_with_index do |def_item, idx|
@@ -164,6 +134,8 @@ module Rng
                 # Include without override block
                 xml.include(href: href)
               end
+            elsif def_item.key?(:name) && keyword_start_name?(def_item[:name])
+              emit_nonleading_start(xml, def_item)
             elsif def_item.key?(:name)
               # Named pattern - handle augmentation operators
               name = process_identifier(def_item[:name])
@@ -439,6 +411,66 @@ module Rng
         extract_string(id_node[:identifier])
       else
         extract_string(id_node)
+      end
+    end
+
+    # Emit the grammar's <start>: an explicit leading start, or (when there is
+    # none) auto-wrap the first top-level choice/element. A non-leading start is
+    # emitted by the definitions loop, so here it only suppresses auto-wrapping.
+    def emit_grammar_start(xml, tree)
+      if tree[:start] && tree[:start][:start_pattern]
+        xml.start do
+          add_documentation(xml, tree[:start]) if tree[:start][:docs]
+          process_pattern_list(xml, tree[:start][:start_pattern])
+        end
+      elsif nonleading_start?(tree)
+        # Emitted as <start> by the definitions loop.
+      elsif (choice = tree[:definitions]&.find { |d| d.key?(:top_choice) })
+        emit_start_from_top_choice(xml, choice)
+      elsif (element = tree[:definitions]&.find { |d| d.key?(:top_element) })
+        xml.start { process_content_item(xml, element[:top_element]) }
+      end
+    end
+
+    def emit_start_from_top_choice(xml, first_choice)
+      xml.start do
+        xml.choice do
+          process_content_item(xml, first_choice[:top_choice][:first])
+          first_choice[:top_choice][:choice_items]&.each do |item|
+            process_content_item(xml, item)
+          end
+        end
+      end
+    end
+
+    # True when a `start = X` / `start |= X` appears outside the leading
+    # position and was parsed as a named pattern named "start".
+    def nonleading_start?(tree)
+      tree[:definitions]&.any? do |d|
+        d.key?(:name) && keyword_start_name?(d[:name])
+      end || false
+    end
+
+    # True when a named-pattern name is the `start` keyword, and NOT an escaped
+    # identifier `\start` (a define literally named "start", which must stay a
+    # <define>). The escape survives as a backslash_escape identifier part.
+    def keyword_start_name?(name_node)
+      process_identifier(name_node) == 'start' && !escaped_identifier?(name_node)
+    end
+
+    def escaped_identifier?(name_node)
+      parts = name_node.is_a?(Hash) ? name_node[:identifier_parts] : nil
+      Array(parts).any? { |p| p.is_a?(Hash) && p.key?(:backslash_escape) }
+    end
+
+    # Emit a real <start> for a non-leading `start = X` / `start |= X` that was
+    # parsed as a named pattern (a <define name="start"> would be wrong).
+    def emit_nonleading_start(xml, def_item)
+      op = def_item[:operator] ? extract_string(def_item[:operator]) : '='
+      combine = { '|=' => 'choice', '&=' => 'interleave' }[op]
+      xml.start(combine ? { combine: combine } : {}) do
+        add_documentation(xml, def_item) if def_item[:docs]
+        process_pattern_list(xml, def_item[:pattern])
       end
     end
 
