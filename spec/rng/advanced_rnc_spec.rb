@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'rng'
+require 'parslet'
 
 RSpec.describe 'Advanced RNC features' do
   describe 'Name wildcards' do
@@ -155,6 +156,20 @@ RSpec.describe 'Advanced RNC features' do
       grammar = Rng.parse_rnc(rnc)
 
       expect(grammar.define.map(&:name)).to contain_exactly('foo', 'bar')
+    end
+  end
+
+  describe 'Sequence separators' do
+    it 'rejects comma-less sequence items so they cannot swallow the next definition' do
+      rnc = 'start = element n { attribute foo { text } attribute bar { text } }'
+      expect { Rng.parse_rnc(rnc) }.to raise_error(Parslet::ParseFailed)
+    end
+
+    it 'parses comma-separated sequence items in element content' do
+      rnc = 'start = element n { attribute foo { text }, attribute bar { text } }'
+      grammar = Rng.parse_rnc(rnc)
+      attrs = grammar.start.first.element.attribute.map(&:attr_name)
+      expect(attrs).to eq(%w[foo bar])
     end
   end
 
