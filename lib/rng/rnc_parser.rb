@@ -413,7 +413,10 @@ module Rng
     # Choice is handled at content level, not as separate pattern
     rule(:content_item) do
       (doc_comments >> whitespace).maybe >>
-        annotations.maybe >>
+        # `annotations` consumes leading whitespace but not trailing; without
+        # eating the space after `]`, a following element/attribute/ref keyword
+        # would fail to match. `.maybe` keeps the no-annotation path unchanged.
+        (annotations >> whitespace).maybe >>
         (element_def | attribute_def |
           # Datatype subtraction: identifier - ( value|identifier|choice|annotated )
           (identifier.as(:datatype_name) >>

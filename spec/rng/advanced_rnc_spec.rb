@@ -98,4 +98,29 @@ RSpec.describe 'Advanced RNC features' do
       expect { Rng.parse_rnc(rnc) }.not_to raise_error
     end
   end
+
+  describe 'Content-position annotations' do
+    it 'parses a bracket annotation before an attribute in content' do
+      rnc = 'start = element n { [ a:defaultValue = "x" ] attribute foo { text } }'
+      expect { Rng.parse_rnc(rnc) }.not_to raise_error
+    end
+
+    it 'parses a bracket annotation before a nested element in content' do
+      rnc = 'start = element n { [ a:documentation [ "hi" ] ] element c { text } }'
+      expect { Rng.parse_rnc(rnc) }.not_to raise_error
+    end
+
+    it 'parses a bracket annotation before a ref in content' do
+      rnc = <<~RNC
+        c = element c { text }
+        start = element n { [ a:defaultValue = "x" ] c }
+      RNC
+      expect { Rng.parse_rnc(rnc) }.not_to raise_error
+    end
+
+    it 'leaves un-annotated content parsing unchanged' do
+      rnc = 'start = element n { attribute foo { text } }'
+      expect { Rng.parse_rnc(rnc) }.not_to raise_error
+    end
+  end
 end
