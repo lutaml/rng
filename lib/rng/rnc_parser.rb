@@ -272,8 +272,8 @@ module Rng
     rule(:annotation_skip_inner) do
       (str('"""') >> (str('"""').absent? >> any).repeat >> str('"""')) |
         (str("'''") >> (str("'''").absent? >> any).repeat >> str("'''")) |
-        (str('"') >> ((str('\\') >> any) | (str('"').absent? >> any)).repeat >> str('"')) |
-        (str("'") >> ((str('\\') >> any) | (str("'").absent? >> any)).repeat >> str("'")) |
+        (str('"') >> ((str('\\') >> any) | (str('"').absent? >> match('[\u0000-\u001F\u007F]').absent? >> any)).repeat >> str('"')) |
+        (str("'") >> ((str('\\') >> any) | (str("'").absent? >> match('[\u0000-\u001F\u007F]').absent? >> any)).repeat >> str("'")) |
         (str('[') >> annotation_skip_inner.repeat >> str(']')) |
         (str('[').absent? >> str(']').absent? >> str('"').absent? >> str("'").absent? >> any)
     end

@@ -157,6 +157,12 @@ RSpec.describe 'Advanced RNC features' do
 
       expect(grammar.define.map(&:name)).to contain_exactly('foo', 'bar')
     end
+
+    it 'rejects a control character inside an annotation string, like a value string' do
+      rnc = "start = element n { [ a:x = \"#{1.chr}\" ] " \
+            'attribute foo { text } }'
+      expect { Rng.parse_rnc(rnc) }.to raise_error(Parslet::ParseFailed)
+    end
   end
 
   describe 'Sequence separators' do
