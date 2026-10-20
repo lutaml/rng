@@ -433,8 +433,13 @@ module Rng
       grammar = @tree[:inner_grammar].dup
 
       # Normalize :includes and :patterns into :definitions
+      #
+      # :definitions may already hold the include-merge result
+      # (IncludeProcessor#merge_included_grammar writes it); fold the
+      # includes and own patterns INTO it instead of overwriting, or every
+      # grammar-block file with includes loses all of its included defines.
       if grammar.key?(:includes) || grammar.key?(:patterns)
-        definitions = []
+        definitions = Array(grammar[:definitions])
         definitions.concat(grammar.delete(:includes)) if grammar[:includes]
         definitions.concat(grammar.delete(:patterns)) if grammar[:patterns]
         grammar[:definitions] = definitions unless definitions.empty?
@@ -451,8 +456,9 @@ module Rng
       grammar = @tree.dup
 
       # Normalize :includes and :patterns into :definitions for flat grammars too
+      # (see build_grammar_block_grammar — never discard existing definitions)
       if grammar.key?(:includes) || grammar.key?(:patterns)
-        definitions = []
+        definitions = Array(grammar[:definitions])
         definitions.concat(grammar.delete(:includes)) if grammar[:includes]
         definitions.concat(grammar.delete(:patterns)) if grammar[:patterns]
         grammar[:definitions] = definitions unless definitions.empty?

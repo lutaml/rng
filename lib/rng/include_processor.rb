@@ -365,7 +365,18 @@ module Rng
     # @return [Hash, nil] Parsed override with :start and :definitions, or nil
     def parse_override(override)
       return nil unless override
-      return override unless override[:raw_override]
+
+      # A non-raw override arrives already expanded as {start:, patterns:}
+      # (the parse tree spells defines :patterns); the merge logic consumes
+      # :definitions, so normalize here or include-block overrides never
+      # apply and the included grammar's base definition wins silently.
+      unless override[:raw_override]
+        defs = override[:definitions] || override[:patterns]
+        result = {}
+        result[:start] = override[:start] if override[:start]
+        result[:definitions] = defs if defs && !defs.empty?
+        return result.empty? ? nil : result
+      end
 
       raw = extract_string(override[:raw_override])
       return nil if raw.nil? || raw.strip.empty?
