@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'nokogiri'
+require 'moxml'
 require 'uri'
 
 module Rng
@@ -22,7 +22,7 @@ module Rng
   end
 
   # Validates raw XML against RELAX NG structural rules.
-  # Operates on the Nokogiri XML tree BEFORE Lutaml deserialization,
+  # Operates on the Moxml XML tree BEFORE Lutaml deserialization,
   # because Lutaml silently drops unmapped content.
   class SchemaValidator
     RNG_NS = 'http://relaxng.org/ns/structure/1.0'
@@ -31,6 +31,8 @@ module Rng
     LEAF_ELEMENTS = %w[empty text notAllowed ref parentRef value].freeze
     OBSOLETE_ELEMENTS = %w[not difference key keyRef].freeze
     OBSOLETE_ATTRS = %w[key keyRef global].freeze
+    OBSOLETE_ATTR_CONTEXTS = [%w[start name], %w[attribute global], %w[data key],
+                              %w[data keyRef]].freeze
     NAME_REQUIRED = %w[element attribute].freeze
     CONTAINER_ELEMENTS = %w[group choice interleave optional zeroOrMore oneOrMore list mixed define start].freeze
     VALID_ROOT_ELEMENTS = %w[grammar element group choice interleave notAllowed externalRef data].freeze
@@ -66,7 +68,7 @@ module Rng
 
     class << self
       def validate(xml_input)
-        doc = Nokogiri::XML(xml_input)
+        doc = Moxml::Context.new.parse(xml_input)
         root = doc.root
         report_error('Document has no root element') unless root
         validator = new
@@ -75,7 +77,7 @@ module Rng
       end
 
       def validate_all(xml_input)
-        doc = Nokogiri::XML(xml_input)
+        doc = Moxml::Context.new.parse(xml_input)
         root = doc.root
         return [SchemaValidationError.new('Document has no root element')] unless root
 
@@ -89,7 +91,7 @@ module Rng
       end
 
       def valid?(xml_input)
-        doc = Nokogiri::XML(xml_input)
+        doc = Moxml::Context.new.parse(xml_input)
         root = doc.root
         return false unless root
 
@@ -113,9 +115,9 @@ module Rng
     end
 
     def validate_node(node, parent_context: nil)
-      return unless node.is_a?(Nokogiri::XML::Element)
+      return unless node.is_a?(Moxml::Element)
 
-      ns = node.namespace&.href
+      ns = node.namespace&.uri
       local_name = node.name
       is_root = node.parent&.document&.root == node
       xpath = node.path.delete_prefix('/')
@@ -192,8 +194,8 @@ module Rng
       validate_oneOrMore_infinite_attribute_name(local_name, node, xpath)
 
       # Recurse
-      node.element_children.each do |child|
-        next if child.namespace&.href == ANNOTATIONS_NS
+      node.children.select(&:element?).each do |child|
+        next if child.namespace&.uri == ANNOTATIONS_NS
 
         validate_node(child, parent_context: context_for_child(local_name, node))
       end
@@ -211,7 +213,7 @@ module Rng
     private
 
     def rng_ns_children(node)
-      node.element_children.select { |c| (c.namespace&.href == RNG_NS) || (c.namespace.nil? && !c.name.empty?) }
+      node.children.select(&:element?).select { |c| (c.namespace&.uri == RNG_NS) || (c.namespace.nil? && !c.name.empty?) }
     end
 
     def context_for_child(parent_name, _parent_node)
@@ -227,7 +229,7 @@ module Rng
       current = node.parent
       while current
         return current if current.name == name &&
-                          (current.namespace&.href == RNG_NS || (current.namespace.nil? && !current.name.empty?))
+                          (current.namespace&.uri == RNG_NS || (current.namespace.nil? && !current.name.empty?))
 
         current = current.parent
       end
@@ -436,21 +438,13 @@ module Rng
     end
 
     def validate_obsolete_attrs(node, xpath)
-      node.attributes.each do |name, attr|
-        attr_ns = attr.namespace&.href
-        if attr_ns == RNG_NS && OBSOLETE_ATTRS.include?(name)
-          report_error("Attribute '#{name}' on '#{node.name}' is obsolete",
-                       xpath: xpath)
-        end
+      node.attributes.each do |attr|
+        attr_ns = attr.namespace&.uri
+        report_error("Attribute '#{attr.name}' on '#{node.name}' is obsolete", xpath: xpath) if attr_ns == RNG_NS && OBSOLETE_ATTRS.include?(attr.name)
         next unless attr_ns.nil? && attr.namespace&.prefix.nil?
+        next unless OBSOLETE_ATTR_CONTEXTS.include?([node.name, attr.name])
 
-        report_error("Attribute 'name' on 'start' is obsolete", xpath: xpath) if name == 'name' && node.name == 'start'
-        if name == 'global' && node.name == 'attribute'
-          report_error("Attribute 'global' on 'attribute' is obsolete",
-                       xpath: xpath)
-        end
-        report_error("Attribute '#{name}' on 'data' is obsolete", xpath: xpath) if %w[key
-                                                                                      keyRef].include?(name) && node.name == 'data'
+        report_error("Attribute '#{attr.name}' on '#{node.name}' is obsolete", xpath: xpath)
       end
     end
 
@@ -529,7 +523,7 @@ module Rng
       return false unless node
 
       current = node
-      while current.is_a?(Nokogiri::XML::Element)
+      while current.is_a?(Moxml::Element)
         current.namespace_definitions.each do |ns|
           return true if ns.prefix == prefix
         end
@@ -758,7 +752,7 @@ module Rng
     def validate_name_value_purity(local_name, node, xpath)
       return unless %w[name value].include?(local_name)
 
-      return unless node.element_children.any?
+      return unless node.children.any?(&:element?)
 
       report_error("'#{local_name}' must not contain child elements", xpath: xpath)
     end
@@ -827,8 +821,9 @@ module Rng
     def validate_leaf_no_attrs(local_name, node, xpath)
       return unless NO_ATTR_LEAF_ELEMENTS.include?(local_name)
 
-      node.attributes.each do |attr_name, attr|
-        attr_ns = attr.namespace&.href
+      node.attributes.each do |attr|
+        attr_name = attr.name
+        attr_ns = attr.namespace&.uri
         next if attr_ns && attr_ns != RNG_NS
         next if attr_name == 'xmlns' || attr_name.start_with?('xmlns:')
 
@@ -838,10 +833,11 @@ module Rng
     end
 
     def validate_unknown_attrs(node, xpath)
-      node.attributes.each do |attr_name, attr|
+      node.attributes.each do |attr|
+        attr_name = attr.name
         next if attr_name == 'xmlns'
 
-        attr_ns = attr.namespace&.href
+        attr_ns = attr.namespace&.uri
         if (attr_ns == RNG_NS) && !known_rng_attr?(
           node.name, attr_name
         )
@@ -1407,9 +1403,9 @@ module Rng
 
     def collect_all_refs(node)
       refs = []
-      return refs unless node.is_a?(Nokogiri::XML::Element)
+      return refs unless node.is_a?(Moxml::Element)
 
-      ns = node.namespace&.href
+      ns = node.namespace&.uri
       local = node.name
       if ns == RNG_NS || (ns.nil? && !local.empty?)
         case local
@@ -1418,7 +1414,7 @@ module Rng
         when 'parentRef'
           refs << { name: node['name'], type: 'parentRef' } if node['name']
         end
-        node.element_children.each do |child|
+        node.children.select(&:element?).each do |child|
           refs.concat(collect_all_refs(child))
         end
       end
@@ -1444,9 +1440,9 @@ module Rng
 
     def collect_direct_refs(node)
       refs = []
-      return refs unless node.is_a?(Nokogiri::XML::Element)
+      return refs unless node.is_a?(Moxml::Element)
 
-      ns = node.namespace&.href
+      ns = node.namespace&.uri
       local = node.name
       if ns == RNG_NS || (ns.nil? && !local.empty?)
         case local
@@ -1455,7 +1451,7 @@ module Rng
         when 'parentRef'
           refs << node['name'] if node['name']
         end
-        node.element_children.each do |child|
+        node.children.select(&:element?).each do |child|
           next if child.name == 'define' # Don't recurse into nested grammar's defines
 
           refs.concat(collect_direct_refs(child))

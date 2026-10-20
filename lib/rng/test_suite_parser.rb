@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'nokogiri'
+require 'moxml'
 
 module Rng
   # Parses RELAX NG test suite XML files (like compacttest.xml)
@@ -53,7 +53,7 @@ module Rng
     attr_reader :test_cases
 
     def initialize(xml_content)
-      @doc = Nokogiri::XML(xml_content)
+      @doc = Moxml::Context.new.parse(xml_content)
       @test_cases = []
       parse_test_cases
     end
@@ -138,7 +138,7 @@ module Rng
       xml_node.xpath('resource').each do |resource_node|
         name = resource_node['name']
         # Get the first element child as RNG content
-        content_node = resource_node.elements.first
+        content_node = resource_node.children.find(&:element?)
         content = content_node ? content_node.to_xml : ''
         test_case.xml_resources[name] = content
       end
@@ -147,7 +147,7 @@ module Rng
       correct_node = xml_node.at_xpath('correct')
       if correct_node
         # Get the first element child as RNG content
-        rng_node = correct_node.elements.first
+        rng_node = correct_node.children.find(&:element?)
         test_case.instance_variable_set(
           :@xml_correct,
           rng_node ? rng_node.to_xml : ''
@@ -158,7 +158,7 @@ module Rng
       incorrect_node = xml_node.at_xpath('incorrect')
       return unless incorrect_node
 
-      rng_node = incorrect_node.elements.first
+      rng_node = incorrect_node.children.find(&:element?)
       test_case.instance_variable_set(
         :@xml_incorrect,
         rng_node ? rng_node.to_xml : ''

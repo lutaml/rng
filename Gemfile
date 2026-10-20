@@ -7,6 +7,7 @@ gemspec
 
 gem 'benchmark'
 gem 'canon'
+gem 'leptris'
 gem 'lutaml-model', '~> 0.8.0'
 gem 'nokogiri'
 gem 'rake'
