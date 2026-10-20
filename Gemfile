@@ -7,7 +7,7 @@ gemspec
 
 gem 'benchmark'
 gem 'canon'
-gem 'lutaml-model', github: 'lutaml/lutaml-model', branch: 'main'
+gem 'lutaml-model', '~> 0.8.0'
 gem 'nokogiri'
 gem 'rake'
 gem 'rspec'
