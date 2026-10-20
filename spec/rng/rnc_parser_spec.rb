@@ -646,8 +646,11 @@ RSpec.describe Rng::RncParser do
 
           avg_time = elapsed / 10
 
-          # Should parse in under 2s per iteration
-          expect(avg_time).to be < 2.0
+          # Pathological-regression guard, not a micro-benchmark: the
+          # largest grammar (isodoc) measures 2-3.1s across CI runners
+          # and developer machines, so the budget must tolerate runner
+          # variance while still catching order-of-magnitude regressions.
+          expect(avg_time).to be < 5.0
         end
       else
         it 'has schema files for performance testing' do
