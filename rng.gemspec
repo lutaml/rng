@@ -30,7 +30,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'lutaml-model', '~> 0.8.114'
-  spec.add_dependency 'nokogiri'
+  spec.add_dependency 'moxml'
   spec.add_dependency 'parslet'
 
   spec.add_dependency 'thor'

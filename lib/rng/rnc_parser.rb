@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'parslet'
-require 'nokogiri'
 require 'set'
 
 module Rng

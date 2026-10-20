@@ -190,7 +190,7 @@ module Rng
     # Deep dup a pattern object
     #
     # Uses recursive copying instead of Marshal to handle objects
-    # containing Nokogiri::XML::Element nodes (stored in element_order
+    # containing Moxml element nodes (stored in element_order
     # by lutaml-model), which cannot be serialized by Marshal.
     #
     # @param obj [Object] Object to deep copy
@@ -219,7 +219,7 @@ module Rng
 
     # Carry lutaml's document-order ivars onto a deep-dup'd object so to_xml
     # emits children in source order. These hold Lutaml::Xml::Element value
-    # objects (name/type), not live Nokogiri nodes.
+    # objects (name/type), not live Moxml nodes.
     #
     # @param source [Object] Original object
     # @param result [Object] Deep-dup'd copy

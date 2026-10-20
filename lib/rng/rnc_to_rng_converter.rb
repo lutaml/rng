@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require 'nokogiri'
+require 'moxml'
 require 'set'
 
 module Rng
   # RncToRngConverter converts RNC parse trees to RNG XML format.
   #
   # This class takes the parse tree output from the Parslet RNC parser and
-  # converts it to RNG XML using Nokogiri's XML builder. The resulting XML
+  # converts it to RNG XML using Moxml's Nokogiri-compatible XML builder.
+  # The resulting XML
   # can then be deserialized into Grammar objects using Lutaml::Model.
   #
   # @example Convert a parse tree to RNG XML
@@ -38,30 +39,32 @@ module Rng
       # Validate that element notations in preamble annotations are only used with element/attribute patterns
       validate_preamble_element_notation_usage(tree[:preamble_items], tree[:definitions])
 
-      builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
+      # Build without Context#build: its block is instance_eval'd, which
+      # would re-bind self and turn every converter helper call into a
+      # builder method_missing tag. A lambda preserves self; Moxml's tag
+      # blocks use block.call, so caller context survives down the tree.
+      builder = Moxml::Builder.new(Moxml::Context.new)
+      emit = lambda do |xml|
+        xml.declaration
         grammar_attrs = { xmlns: 'http://relaxng.org/ns/structure/1.0' }
         if @has_documentation
           grammar_attrs[:'xmlns:a'] =
             'http://relaxng.org/ns/compatibility/annotations/1.0'
         end
+        if tree[:namespace]
+          grammar_attrs[:ns] =
+            process_string_literal(tree[:namespace][:namespace_uri])
+        end
+        if tree[:datatype_library]
+          grammar_attrs[:datatypeLibrary] =
+            process_string_literal(tree[:datatype_library][:uri])
+        elsif tree[:datatype_map] && !tree[:datatype_map].empty?
+          # From ParseTreeProcessor - datatype_map is {prefix => uri}
+          # Use the first (typically only) datatype library
+          grammar_attrs[:datatypeLibrary] = tree[:datatype_map].values.first
+        end
 
         xml.grammar(grammar_attrs) do
-          # Add namespace if present
-          if tree[:namespace]
-            xml.parent[:ns] =
-              process_string_literal(tree[:namespace][:namespace_uri])
-          end
-
-          # Add datatype library if present
-          if tree[:datatype_library]
-            xml.parent[:datatypeLibrary] =
-              process_string_literal(tree[:datatype_library][:uri])
-          elsif tree[:datatype_map] && !tree[:datatype_map].empty?
-            # From ParseTreeProcessor - datatype_map is {prefix => uri}
-            # Use the first (typically only) datatype library
-            xml.parent[:datatypeLibrary] = tree[:datatype_map].values.first
-          end
-
           # A leading `start` (tree[:start]) or a non-leading one (emitted as
           # <start> in the definitions loop) both suppress auto-wrapping.
           has_explicit_start =
@@ -178,7 +181,8 @@ module Rng
         end
       end
 
-      builder.to_xml
+      emit.call(builder)
+      builder.document.to_xml
     end
 
     private
@@ -230,6 +234,11 @@ module Rng
     end
 
     # Add annotations (foreign attributes and elements) if present
+    #
+    # NOTE: currently uncalled; kept for upcoming annotation emission. The
+    # foreign-attribute branch below needs the enclosing element, which the
+    # Moxml builder does not expose yet — port it together with that hook
+    # rather than reintroducing Nokogiri-style parent mutation.
     def add_annotations(xml, item, processor = nil)
       return unless item[:annotations]
 
@@ -741,7 +750,7 @@ module Rng
         # Bare anyName wildcard: *
         any_name_info = item[:bare_any_name]
         except_clause = any_name_info[:any_name_except]
-        xml.element do
+        xml.element({}) do
           xml.anyName do
             if except_clause
               xml.except_ do
@@ -915,7 +924,7 @@ module Rng
           case element_name_type
           when :any_name
             # Generate <anyName> with optional <except>
-            xml_ctx.element do
+            xml_ctx.element({}) do
               add_documentation(xml_ctx, item) if item[:docs]
               xml_ctx.anyName do
                 if except_clause
@@ -928,7 +937,7 @@ module Rng
             end
           when :ns_name
             # Generate <nsName> with ns attribute and optional <except>
-            xml_ctx.element do
+            xml_ctx.element({}) do
               add_documentation(xml_ctx, item) if item[:docs]
               xml_ctx.nsName(ns: ns_prefix) do
                 if except_clause
@@ -941,7 +950,7 @@ module Rng
             end
           when :name_choice
             # Element with choice of names (e.g., element foo|bar { ... })
-            xml_ctx.element do
+            xml_ctx.element({}) do
               add_documentation(xml_ctx, item) if item[:docs]
               xml_ctx.choice do
                 choice_names.each do |name_part|
@@ -971,15 +980,15 @@ module Rng
         wrap_with_occurrence(xml, occurrence) { element_block.call(xml) }
       elsif item.key?(:text)
         wrap_with_occurrence(xml, item[:occurrence]) do
-          xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
+          xml.text_
         end
       elsif item.key?(:empty)
         wrap_with_occurrence(xml, item[:occurrence]) do
-          xml.parent << Nokogiri::XML::Node.new('empty', xml.doc)
+          xml.empty_
         end
       elsif item.key?(:not_allowed)
         wrap_with_occurrence(xml, item[:occurrence]) do
-          xml.parent << Nokogiri::XML::Node.new('notAllowed', xml.doc)
+          xml.notAllowed_
         end
       elsif item.key?(:list_content)
         xml.list do
@@ -1174,7 +1183,7 @@ module Rng
     def process_list_item(xml, item)
       item_block = lambda do |xml_ctx|
         if item.key?(:text)
-          xml_ctx.parent << Nokogiri::XML::Node.new('text', xml_ctx.doc)
+          xml_ctx.text_
         elsif item.key?(:prefix)
           # Datatype reference
           data_attrs = {
@@ -1254,7 +1263,7 @@ module Rng
           end
         end
       elsif type_info == 'text' || (type_info.is_a?(Hash) && type_info.key?(:text_type))
-        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
+        xml.text_
       elsif type_info.is_a?(Hash) && type_info.key?(:value)
         # Single value literal
         xml.value(process_string_literal(type_info[:value]))
@@ -1284,7 +1293,7 @@ module Rng
 
     def emit_attribute_choice_item(xml, item)
       if item.key?(:text_type)
-        xml.parent << Nokogiri::XML::Node.new('text', xml.doc)
+        xml.text_
       elsif item.key?(:value)
         xml.value(process_string_literal(item[:value]))
       elsif item.key?(:ref)
@@ -1412,7 +1421,7 @@ module Rng
       end
 
       # Emit as an empty foreign element (content is annotation-only, ignored in RNG)
-      xml.parent.add_child("<#{element_name}/>")
+      xml.create_tag(element_name)
     end
   end
 end
