@@ -202,7 +202,7 @@ module Rng
     end
 
     def report_error(message, xpath: nil, node: nil)
-      line = node&.line if node
+      line = node&.line_number
       error = SchemaValidationError.new(message, xpath: xpath, line: line)
       raise error unless @collect_all
 
